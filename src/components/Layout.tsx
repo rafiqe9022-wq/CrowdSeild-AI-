@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
+import { ROLE_PERMISSIONS } from '../types';
 import { Shield, LayoutDashboard, Map, Users, AlertTriangle, Route, Siren, FlaskConical, Activity, ClipboardList, History, FileText, Settings, BookOpen, LogOut, Menu, X, Bell } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -29,6 +30,11 @@ export default function Layout() {
   
   const currentPage = location.pathname.replace('/', '') || 'dashboard';
   const onNavigate = (page: string) => navigate(`/${page}`);
+
+  // Filter navigation items based on user role permissions
+  const userRole = store.currentUser?.role || 'auditor';
+  const allowedPages = ROLE_PERMISSIONS[userRole];
+  const filteredNavItems = NAV_ITEMS.filter(item => allowedPages.includes(item.id));
 
   const unreadAlerts = store.alerts.filter(a => a.status === 'active').length;
 
@@ -66,7 +72,7 @@ export default function Layout() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2">
-          {NAV_ITEMS.map(item => {
+          {filteredNavItems.map(item => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
             return (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { StoreContext, initializeStore, loadStore, saveStore, AppStore } from './store';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { StoreContext, initializeStore, loadStore, saveStore, AppStore, useStore } from './store';
+import { ROLE_PERMISSIONS } from './types';
 import { simulateCrowdMovement, simulateTrafficFlow, generateAlerts } from './engine';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -101,6 +102,22 @@ function App() {
     setStoreState(prev => updater(prev));
   };
 
+  // Protected route component with role-based access control
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    const location = useLocation();
+    const currentPage = location.pathname.replace('/', '') || 'dashboard';
+    const userRole = store.currentUser?.role || 'auditor';
+    const allowedPages = ROLE_PERMISSIONS[userRole];
+    
+    if (!allowedPages.includes(currentPage)) {
+      // Redirect to first allowed page
+      const firstAllowedPage = allowedPages[0] || 'dashboard';
+      return <Navigate to={`/${firstAllowedPage}`} replace />;
+    }
+    
+    return <>{children}</>;
+  };
+
   return (
     <StoreContext.Provider value={{ store, setStore }}>
       <BrowserRouter>
@@ -113,20 +130,20 @@ function App() {
             store.currentUser ? <Layout /> : <Navigate to="/login" replace />
           }>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="map" element={<MapPage />} />
-            <Route path="crowd" element={<CrowdMonitor />} />
-            <Route path="traffic" element={<TrafficFlow />} />
-            <Route path="risk" element={<RiskEngine />} />
-            <Route path="routes" element={<RoutePlanner />} />
-            <Route path="emergency" element={<EmergencyCorridor />} />
-            <Route path="signals" element={<SignalAdvisory />} />
-            <Route path="scenario" element={<ScenarioLab />} />
-            <Route path="alerts" element={<Alerts />} />
-            <Route path="gates" element={<GateManagement />} />
-            <Route path="audit" element={<AuditLog />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="help" element={<Help />} />
+            <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+            <Route path="crowd" element={<ProtectedRoute><CrowdMonitor /></ProtectedRoute>} />
+            <Route path="traffic" element={<ProtectedRoute><TrafficFlow /></ProtectedRoute>} />
+            <Route path="risk" element={<ProtectedRoute><RiskEngine /></ProtectedRoute>} />
+            <Route path="routes" element={<ProtectedRoute><RoutePlanner /></ProtectedRoute>} />
+            <Route path="emergency" element={<ProtectedRoute><EmergencyCorridor /></ProtectedRoute>} />
+            <Route path="signals" element={<ProtectedRoute><SignalAdvisory /></ProtectedRoute>} />
+            <Route path="scenario" element={<ProtectedRoute><ScenarioLab /></ProtectedRoute>} />
+            <Route path="alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
+            <Route path="gates" element={<ProtectedRoute><GateManagement /></ProtectedRoute>} />
+            <Route path="audit" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+            <Route path="reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
           </Route>
           
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

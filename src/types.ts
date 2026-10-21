@@ -2,6 +2,27 @@
 
 export type UserRole = 'admin' | 'operator' | 'traffic_officer' | 'emergency_officer' | 'auditor';
 
+// Role-based page access permissions
+export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
+  admin: [
+    'dashboard', 'map', 'crowd', 'traffic', 'risk', 'routes', 
+    'emergency', 'signals', 'scenario', 'alerts', 'gates', 
+    'audit', 'reports', 'help'
+  ],
+  operator: [
+    'dashboard', 'map', 'crowd', 'risk', 'alerts', 'gates', 'help'
+  ],
+  traffic_officer: [
+    'dashboard', 'map', 'traffic', 'routes', 'signals', 'gates', 'help'
+  ],
+  emergency_officer: [
+    'dashboard', 'map', 'emergency', 'routes', 'alerts', 'help'
+  ],
+  auditor: [
+    'dashboard', 'audit', 'reports', 'alerts', 'help'
+  ]
+};
+
 export interface User {
   id: string;
   username: string;
