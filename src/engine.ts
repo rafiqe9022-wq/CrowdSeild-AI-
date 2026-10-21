@@ -35,9 +35,26 @@ export function calculateRiskScore(
   const latest = recentObs[0];
   const factors: RiskFactor[] = [];
 
+  // Validate inputs to prevent NaN/Infinity
+  if (!zone.area || zone.area <= 0 || !zone.capacity || zone.capacity <= 0) {
+    return {
+      id: `risk-${zone.id}-${Date.now()}`,
+      zoneId: zone.id,
+      timestamp: new Date().toISOString(),
+      score: 0,
+      severity: 'low',
+      factors: [],
+      trend: 'stable',
+      projection: null,
+      confidence: 0,
+      dataFreshness: 'Invalid zone configuration'
+    };
+  }
+
   // Factor 1: Current density relative to capacity (weight: 30%)
-  const densityRatio = latest.density / (zone.capacity / zone.area);
-  const densityScore = Math.min(100, densityRatio * 100);
+  const maxDensity = zone.capacity / zone.area;
+  const densityRatio = maxDensity > 0 ? latest.density / maxDensity : 0;
+  const densityScore = Math.min(100, Math.max(0, densityRatio * 100));
   factors.push({
     name: 'Crowd Density',
     value: densityRatio,
@@ -151,8 +168,13 @@ export function calculateRiskScore(
     const sumY = counts.reduce((s, c) => s + c, 0);
     const sumXY = counts.reduce((s, c, i) => s + i * c, 0);
     const sumX2 = counts.reduce((s, _, i) => s + i * i, 0);
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    projection = Math.round(counts[counts.length - 1] + slope * 5);
+    const denominator = n * sumX2 - sumX * sumX;
+    if (denominator !== 0) {
+      const slope = (n * sumXY - sumX * sumY) / denominator;
+      const projected = counts[counts.length - 1] + slope * 5;
+      // Only set projection if it's a valid non-negative number
+      projection = (isFinite(projected) && projected >= 0) ? Math.round(projected) : null;
+    }
   }
 
   const dataAge = (Date.now() - new Date(latest.timestamp).getTime()) / 1000;
@@ -182,6 +204,19 @@ export function findShortestPath(
   travelMode: 'pedestrian' | 'vehicle' | 'both',
   avoidBlocked: boolean = true
 ): { path: string[]; distance: number; time: number; blockedEdges: string[] } | null {
+  // Validate inputs
+  if (!originId || !destinationId) return null;
+  
+  // Check if origin and destination exist
+  const originExists = nodes.some(n => n.id === originId);
+  const destExists = nodes.some(n => n.id === destinationId);
+  if (!originExists || !destExists) return null;
+  
+  // Same origin and destination
+  if (originId === destinationId) {
+    return { path: [originId], distance: 0, time: 0, blockedEdges: [] };
+  }
+  
   const nodeMap = new Map(nodes.map(n => [n.id, n]));
   const adjacency = new Map<string, { edge: GraphEdge; neighbor: string }[]>();
 

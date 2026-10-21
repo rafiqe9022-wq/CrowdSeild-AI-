@@ -12,7 +12,7 @@ export default function Login() {
   const [showDemo, setShowDemo] = useState(false);
 
   const handleLogin = () => {
-    const user = DEMO_USERS.find(u => u.username === username && u.passwordHash === password);
+    const user = DEMO_USERS.find(u => u.username === username && u.demoPassword === password);
     if (user) {
       setStore(prev => ({
         ...prev,

@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
-import { Shield, LayoutDashboard, Map, Users, AlertTriangle, Route, Siren, FlaskConical, Activity, ClipboardList, History, FileText, Settings, BookOpen, LogOut, Menu, X, Bell, ChevronDown } from 'lucide-react';
-
-interface LayoutProps {
-  children: React.ReactNode;
-  currentPage: string;
-  onNavigate: (page: string) => void;
-}
+import { Shield, LayoutDashboard, Map, Users, AlertTriangle, Route, Siren, FlaskConical, Activity, ClipboardList, History, FileText, Settings, BookOpen, LogOut, Menu, X, Bell } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Command Centre', icon: LayoutDashboard },
@@ -25,15 +20,33 @@ const NAV_ITEMS = [
   { id: 'help', label: 'Help & Docs', icon: BookOpen },
 ];
 
-export default function Layout({ children, currentPage, onNavigate }: LayoutProps) {
+export default function Layout() {
   const { store, setStore } = useStore();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNotif, setShowNotif] = useState(false);
+  
+  const currentPage = location.pathname.replace('/', '') || 'dashboard';
+  const onNavigate = (page: string) => navigate(`/${page}`);
 
   const unreadAlerts = store.alerts.filter(a => a.status === 'active').length;
 
   const handleLogout = () => {
-    setStore(prev => ({ ...prev, currentUser: null }));
+    setStore(prev => ({
+      ...prev,
+      currentUser: null,
+      auditLog: [...prev.auditLog, {
+        id: `audit-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        userId: prev.currentUser?.id || 'system',
+        action: 'logout',
+        entityType: 'user',
+        entityId: prev.currentUser?.id || 'system',
+        details: `User logged out`
+      }]
+    }));
+    navigate('/login');
   };
 
   return (
@@ -170,7 +183,7 @@ export default function Layout({ children, currentPage, onNavigate }: LayoutProp
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-4">
-          {children}
+          <Outlet />
         </main>
       </div>
     </div>

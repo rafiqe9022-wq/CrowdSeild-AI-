@@ -2,13 +2,13 @@
 import { createContext, useContext } from 'react';
 import { User, Event, Zone, Gate, Road, Intersection, CrowdObservation, Alert, Incident, AuditEntry, SimulationState, GraphNode, GraphEdge, EmergencyVehicle, SignalRecommendation, SimulationScenario, RouteRecommendation } from './types';
 
-// Demo users (passwords are hashed with simple hash for demo only)
+// Demo users (demo credentials only - not for production use)
 export const DEMO_USERS: User[] = [
-  { id: 'u1', username: 'admin', displayName: 'Rajesh Kumar (Admin)', role: 'admin', passwordHash: 'admin123' },
-  { id: 'u2', username: 'operator', displayName: 'Priya Sharma (Operator)', role: 'operator', passwordHash: 'operator123' },
-  { id: 'u3', username: 'traffic', displayName: 'Amit Singh (Traffic)', role: 'traffic_officer', passwordHash: 'traffic123' },
-  { id: 'u4', username: 'emergency', displayName: 'Dr. Meera Patel (Emergency)', role: 'emergency_officer', passwordHash: 'emergency123' },
-  { id: 'u5', username: 'auditor', displayName: 'Vikram Rao (Auditor)', role: 'auditor', passwordHash: 'auditor123' },
+  { id: 'u1', username: 'admin', displayName: 'Rajesh Kumar (Admin)', role: 'admin', demoPassword: 'admin123' },
+  { id: 'u2', username: 'operator', displayName: 'Priya Sharma (Operator)', role: 'operator', demoPassword: 'operator123' },
+  { id: 'u3', username: 'traffic', displayName: 'Amit Singh (Traffic)', role: 'traffic_officer', demoPassword: 'traffic123' },
+  { id: 'u4', username: 'emergency', displayName: 'Dr. Meera Patel (Emergency)', role: 'emergency_officer', demoPassword: 'emergency123' },
+  { id: 'u5', username: 'auditor', displayName: 'Vikram Rao (Auditor)', role: 'auditor', demoPassword: 'auditor123' },
 ];
 
 // Demo event - "Kumbh Mela 2026 Simulation"
@@ -241,11 +241,28 @@ const STORAGE_KEY = 'crowdshield_data';
 export function loadStore(): AppStore | null {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    if (data) return JSON.parse(data);
+    if (!data) return null;
+    
+    const parsed = JSON.parse(data);
+    
+    // Validate required fields exist
+    if (!parsed.event || !parsed.zones || !parsed.gates || !parsed.roads) {
+      console.warn('Invalid store data structure, resetting to defaults');
+      return null;
+    }
+    
+    // Validate arrays are actually arrays
+    if (!Array.isArray(parsed.zones) || !Array.isArray(parsed.gates) || !Array.isArray(parsed.roads)) {
+      console.warn('Invalid array data in store, resetting to defaults');
+      return null;
+    }
+    
+    return parsed as AppStore;
   } catch (e) {
-    console.error('Failed to load store:', e);
+    console.error('Failed to load store (corrupted data):', e);
+    localStorage.removeItem(STORAGE_KEY);
+    return null;
   }
-  return null;
 }
 
 export function saveStore(store: Partial<AppStore>): void {

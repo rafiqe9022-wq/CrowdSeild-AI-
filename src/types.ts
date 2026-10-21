@@ -7,7 +7,7 @@ export interface User {
   username: string;
   displayName: string;
   role: UserRole;
-  passwordHash: string;
+  demoPassword: string; // Demo credentials only - not for production
 }
 
 export interface Event {
