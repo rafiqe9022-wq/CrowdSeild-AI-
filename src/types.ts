@@ -5,21 +5,21 @@ export type UserRole = 'admin' | 'operator' | 'traffic_officer' | 'emergency_off
 // Role-based page access permissions
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   admin: [
-    'dashboard', 'map', 'crowd', 'traffic', 'risk', 'routes', 
+    'dashboard', 'ai-detection', 'map', 'crowd', 'traffic', 'risk', 'routes', 
     'emergency', 'signals', 'scenario', 'alerts', 'gates', 
     'audit', 'reports', 'help'
   ],
   operator: [
-    'dashboard', 'map', 'crowd', 'risk', 'alerts', 'gates', 'help'
+    'dashboard', 'ai-detection', 'map', 'crowd', 'risk', 'alerts', 'gates', 'help'
   ],
   traffic_officer: [
-    'dashboard', 'map', 'traffic', 'routes', 'signals', 'gates', 'help'
+    'dashboard', 'ai-detection', 'map', 'traffic', 'routes', 'signals', 'gates', 'help'
   ],
   emergency_officer: [
-    'dashboard', 'map', 'emergency', 'routes', 'alerts', 'help'
+    'dashboard', 'ai-detection', 'map', 'emergency', 'routes', 'alerts', 'help'
   ],
   auditor: [
-    'dashboard', 'audit', 'reports', 'alerts', 'help'
+    'dashboard', 'ai-detection', 'audit', 'reports', 'alerts', 'help'
   ]
 };
 

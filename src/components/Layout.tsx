@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
 import { ROLE_PERMISSIONS } from '../types';
-import { Shield, LayoutDashboard, Map, Users, AlertTriangle, Route, Siren, FlaskConical, Activity, ClipboardList, History, FileText, Settings, BookOpen, LogOut, Menu, X, Bell } from 'lucide-react';
+import { Shield, LayoutDashboard, Map, Users, AlertTriangle, Route, Siren, FlaskConical, Activity, ClipboardList, History, FileText, Settings, BookOpen, LogOut, Menu, X, Bell, Camera } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Command Centre', icon: LayoutDashboard },
+  { id: 'ai-detection', label: 'AI Detection', icon: Camera },
   { id: 'map', label: 'Event Map', icon: Map },
   { id: 'crowd', label: 'Crowd Monitor', icon: Users },
   { id: 'traffic', label: 'Traffic Flow', icon: Activity },

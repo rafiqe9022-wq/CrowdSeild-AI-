@@ -6,6 +6,7 @@ import { simulateCrowdMovement, simulateTrafficFlow, generateAlerts } from './en
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import AIDetection from './pages/AIDetection';
 import MapPage from './pages/MapPage';
 import CrowdMonitor from './pages/CrowdMonitor';
 import TrafficFlow from './pages/TrafficFlow';
@@ -131,6 +132,7 @@ function App() {
           }>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="ai-detection" element={<ProtectedRoute><AIDetection /></ProtectedRoute>} />
             <Route path="map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
             <Route path="crowd" element={<ProtectedRoute><CrowdMonitor /></ProtectedRoute>} />
             <Route path="traffic" element={<ProtectedRoute><TrafficFlow /></ProtectedRoute>} />
