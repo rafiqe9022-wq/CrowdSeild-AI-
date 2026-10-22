@@ -1,25 +1,17 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Camera, Upload, Play, Pause, AlertTriangle, Activity, ImageIcon, Users, Loader } from 'lucide-react';
 import { ObjectDetector, FilesetResolver, Detection as MediaPipeDetection } from '@mediapipe/tasks-vision';
-
-interface TrackedPerson {
-  id: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  lastSeen: number;
-}
+import { PersonTracker } from '../utils/personTracker';
 
 export default function AIDetection() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef<ObjectDetector | null>(null);
+  const trackerRef = useRef<PersonTracker>(new PersonTracker());
   const animationFrameRef = useRef<number>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isDetectingRef = useRef(false);
-  const trackedPeopleRef = useRef<TrackedPerson[]>([]);
-  const nextPersonIdRef = useRef(1);
+  const objectUrlRef = useRef<string | null>(null);
 
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [isModelReady, setIsModelReady] = useState(false);
@@ -147,7 +139,15 @@ export default function AIDetection() {
     }
 
     setError(null);
+    
+    // Clean up previous object URL if exists
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+    }
+    
     const url = URL.createObjectURL(file);
+    objectUrlRef.current = url; // Store for cleanup
+    
     if (videoRef.current) {
       videoRef.current.src = url;
       videoRef.current.loop = true;
@@ -166,85 +166,12 @@ export default function AIDetection() {
     }
   };
 
-  // Reset counters
+  // Reset counters and tracker
   const resetCounters = () => {
     setEntries(0);
     setCurrentInFrame(0);
     setPeakCount(0);
-    trackedPeopleRef.current = [];
-    nextPersonIdRef.current = 1; // Reset ID counter so total starts from 0
-  };
-
-  // Track people across frames accurately
-  const trackPeople = (detections: MediaPipeDetection[], canvasWidth: number, canvasHeight: number) => {
-    const now = Date.now();
-    const MAX_AGE = 500; // 0.5 seconds - shorter for more accurate tracking
-    const MATCH_DISTANCE = 80; // pixels - closer match for accuracy
-    
-    // Update tracked people
-    const currentTracked = trackedPeopleRef.current;
-    const matchedIds = new Set<number>();
-    
-    // Match detections to tracked people
-    detections.forEach(detection => {
-      if (detection.categories[0]?.categoryName !== 'person') return;
-      if (!detection.boundingBox) return;
-      
-      const detX = detection.boundingBox.originX * canvasWidth;
-      const detY = detection.boundingBox.originY * canvasHeight;
-      const detWidth = detection.boundingBox.width * canvasWidth;
-      const detHeight = detection.boundingBox.height * canvasHeight;
-      const detCenterX = detX + detWidth / 2;
-      const detCenterY = detY + detHeight / 2;
-      
-      // Find closest tracked person
-      let bestMatch = null;
-      let bestDistance = Infinity;
-      
-      for (let person of currentTracked) {
-        if (matchedIds.has(person.id)) continue; // Already matched
-        
-        const personCenterX = person.x + person.width / 2;
-        const personCenterY = person.y + person.height / 2;
-        const distance = Math.sqrt(
-          Math.pow(detCenterX - personCenterX, 2) + 
-          Math.pow(detCenterY - personCenterY, 2)
-        );
-        
-        if (distance < bestDistance && distance < MATCH_DISTANCE) {
-          bestDistance = distance;
-          bestMatch = person;
-        }
-      }
-      
-      // Update matched person or create new one
-      if (bestMatch) {
-        bestMatch.x = detX;
-        bestMatch.y = detY;
-        bestMatch.width = detWidth;
-        bestMatch.height = detHeight;
-        bestMatch.lastSeen = now;
-        matchedIds.add(bestMatch.id);
-      } else {
-        // New person detected
-        currentTracked.push({
-          id: nextPersonIdRef.current++,
-          x: detX,
-          y: detY,
-          width: detWidth,
-          height: detHeight,
-          lastSeen: now
-        });
-      }
-    });
-    
-    // Remove old tracked people (not seen recently)
-    trackedPeopleRef.current = currentTracked.filter(p => {
-      const age = now - p.lastSeen;
-      return age < MAX_AGE || matchedIds.has(p.id);
-    });
-    
-    return trackedPeopleRef.current;
+    trackerRef.current.reset();
   };
 
   // AI Detection loop with MediaPipe
@@ -294,15 +221,15 @@ export default function AIDetection() {
         det => det.categories[0]?.categoryName === 'person'
       );
 
-      // Track people accurately
-      const trackedPeople = trackPeople(personDetections, canvas.width, canvas.height);
+      // Track people using the robust tracker
+      const trackedPeople = trackerRef.current.update(personDetections, canvas.width, canvas.height);
 
       // Update counts
-      const uniquePeopleCount = trackedPeople.length;
-      setCurrentInFrame(uniquePeopleCount);
-      setPeakCount(prev => Math.max(prev, uniquePeopleCount));
-      // Total unique = highest ID ever assigned (new people get new IDs)
-      setEntries(nextPersonIdRef.current - 1);
+      const currentPeopleCount = trackedPeople.length;
+      setCurrentInFrame(currentPeopleCount);
+      setPeakCount(prev => Math.max(prev, currentPeopleCount));
+      // Total tracks created (not unique visitors - tracker IDs can change)
+      setEntries(trackerRef.current.getTotalTracksCreated());
 
       // Draw detection info
       ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
@@ -364,10 +291,10 @@ export default function AIDetection() {
 
       ctx.font = 'bold 24px Arial';
       ctx.fillStyle = '#00ff00';
-      ctx.fillText(`👥 CURRENT: ${uniquePeopleCount}`, 20, 35);
+      ctx.fillText(`👥 CURRENT: ${currentPeopleCount}`, 20, 35);
 
       ctx.fillStyle = '#ffff00';
-      ctx.fillText(`📊 TOTAL: ${entries}`, 20, 65);
+      ctx.fillText(`📊 TRACKS: ${entries}`, 20, 65);
 
       ctx.fillStyle = '#00ffff';
       ctx.fillText(`🔝 PEAK: ${peakCount}`, 400, 35);
@@ -413,22 +340,32 @@ export default function AIDetection() {
         det => det.categories[0]?.categoryName === 'person'
       );
 
-      setCurrentInFrame(personDetections.length);
-      setPeakCount(personDetections.length);
-      setEntries(personDetections.length);
-
-      // Track people
-      const trackedPeople = trackPeople(personDetections, canvas.width, canvas.height);
+      // Track people using the robust tracker
+      const trackedPeople = trackerRef.current.update(personDetections, canvas.width, canvas.height);
 
       // Update counts
-      setCurrentInFrame(trackedPeople.length);
-      setPeakCount(trackedPeople.length);
-      // Total unique = highest ID ever assigned
-      setEntries(nextPersonIdRef.current - 1);
+      const currentPeopleCount = trackedPeople.length;
+      setCurrentInFrame(currentPeopleCount);
+      setPeakCount(currentPeopleCount);
+      // Total tracks created
+      setEntries(trackerRef.current.getTotalTracksCreated());
 
       // Draw bounding boxes with center dots and IDs
-      trackedPeople.forEach((person, index) => {
-        const score = personDetections[index]?.categories[0]?.score || 0;
+      trackedPeople.forEach((person) => {
+        // Find matching detection for confidence score
+        const matchingDet = personDetections.find(det => {
+          if (!det.boundingBox) return false;
+          const detX = det.boundingBox.originX * canvas.width;
+          const detY = det.boundingBox.originY * canvas.height;
+          const detWidth = det.boundingBox.width * canvas.width;
+          const detHeight = det.boundingBox.height * canvas.height;
+          const distance = Math.sqrt(
+            Math.pow((detX + detWidth/2) - (person.x + person.width/2), 2) +
+            Math.pow((detY + detHeight/2) - (person.y + person.height/2), 2)
+          );
+          return distance < 50;
+        });
+        const score = matchingDet?.categories[0]?.score || person.confidence;
         const centerX = person.x + person.width / 2;
         const centerY = person.y + person.height / 2;
 
@@ -518,6 +455,11 @@ export default function AIDetection() {
         videoRef.current.srcObject = null;
       }
       videoRef.current.src = '';
+    }
+    // Clean up object URL to prevent memory leaks
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
     }
     setVideoSource('none');
     setVideoFileName('');
@@ -805,11 +747,11 @@ export default function AIDetection() {
               </div>
 
               <div className="p-4 bg-gray-900 rounded-lg border-2 border-yellow-500">
-                <div className="text-gray-400 text-sm mb-1">📊 Total Unique Visitors</div>
+                <div className="text-gray-400 text-sm mb-1">📊 Total Tracks Created</div>
                 <div className="text-5xl font-bold text-yellow-400">
                   {entries}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">all unique people seen</div>
+                <div className="text-xs text-gray-500 mt-1">tracking IDs assigned</div>
               </div>
 
               <div className="p-4 bg-gray-900 rounded-lg border-2 border-blue-500">
@@ -833,8 +775,10 @@ export default function AIDetection() {
             <div className="mt-4 p-3 bg-blue-900 bg-opacity-30 border border-blue-700 rounded">
               <p className="text-xs text-blue-300">
                 💡 <strong>How it works:</strong> AI detects people with green bounding boxes and yellow center dots. 
-                Each person gets a stable tracking ID (#1, #2, #3) that persists as they move. 
-                Current count shows people in frame now. Total unique shows all different people seen.
+                Each person gets a stable tracking ID (#1, #2, #3) using IoU-based matching with motion prediction. 
+                <strong> Current People</strong> = people visible now. 
+                <strong> Total Tracks</strong> = number of tracking IDs created (may exceed actual unique people if tracking is lost). 
+                <strong> Peak Count</strong> = maximum people seen at once.
               </p>
             </div>
           </div>
@@ -873,19 +817,27 @@ export default function AIDetection() {
         <div className="mt-6 p-4 bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg">
           <h3 className="text-lg font-semibold mb-2 text-blue-400">About This AI Detection</h3>
           <ul className="text-sm text-gray-300 space-y-1">
-            <li>• <strong>MediaPipe AI</strong> - Google's advanced object detection model</li>
-            <li>• <strong>Dot-based tracking</strong> - Yellow dot at center of each person for easy identification</li>
-            <li>• <strong>Stable tracking IDs</strong> - Each person keeps same ID (#1, #2, #3) across frames</li>
-            <li>• <strong>Accurate counting</strong> - Current people count updates as people enter/leave frame</li>
-            <li>• <strong>No double-counting</strong> - Same person tracked continuously, not counted multiple times</li>
-            <li>• <strong>Real-time detection</strong> - Green bounding boxes with center dots and IDs</li>
+            <li>• <strong>MediaPipe AI</strong> - Google's EfficientDet Lite0 object detection model</li>
+            <li>• <strong>IoU-based tracking</strong> - Uses Intersection over Union with motion prediction for stable IDs</li>
+            <li>• <strong>Dot-based visualization</strong> - Yellow dot at center of each person for easy identification</li>
+            <li>• <strong>Stable tracking IDs</strong> - Each person keeps same ID (#1, #2, #3) across frames when possible</li>
+            <li>• <strong>Current People</strong> - Live count of people visible in frame right now</li>
+            <li>• <strong>Total Tracks</strong> - Number of tracking IDs created (may exceed unique people if tracking lost)</li>
+            <li>• <strong>Peak Count</strong> - Maximum number of people detected at any one time</li>
             <li>• <strong>Works with uploaded videos, webcam, and demo images</strong></li>
             <li>• <strong>YouTube videos</strong> - Manual counting only (iframe restriction)</li>
           </ul>
+          <div className="mt-3 p-3 bg-yellow-900 bg-opacity-30 border border-yellow-700 rounded">
+            <p className="text-xs text-yellow-300">
+              <strong>⚠️ Tracking Limitations:</strong> The system uses bounding-box tracking without facial recognition. 
+              IDs may change if a person is occluded, leaves and re-enters the frame, or in very crowded scenes. 
+              "Total Tracks" counts tracking IDs, not guaranteed unique people.
+            </p>
+          </div>
           <div className="mt-3 p-3 bg-green-900 bg-opacity-30 border border-green-700 rounded">
             <p className="text-xs text-green-300">
-              <strong>💡 Quick Start:</strong> Upload any crowd video → AI detects people with green boxes and yellow center dots. 
-              Each person gets a stable ID (#1, #2, #3) that persists as they move. The current count updates automatically!
+              <strong>💡 Quick Start:</strong> Upload any crowd video → AI detects people with green boxes and yellow dots. 
+              Each person gets a tracking ID that persists as they move. Current count updates in real-time!
             </p>
           </div>
         </div>
