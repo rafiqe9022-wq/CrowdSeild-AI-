@@ -102,12 +102,13 @@ export default function AIDetection() {
     img.onload = () => {
       setDemoImage(img);
       setVideoSource('demo');
-      setVideoFileName('Demo Crowd Scene');
+      setVideoFileName('Demo Crowd Scene (AI Generated)');
     };
     img.onerror = () => {
-      setError('Failed to load demo image. Please check your internet connection.');
+      setError('Failed to load demo image. Please check your internet connection or try uploading your own video.');
     };
-    img.src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1280&h=720&fit=crop';
+    // Use the AI-generated crowd scene image
+    img.src = 'https://image.qwenlm.ai/generated-images/368aeae6-786e-4fe9-aa2c-11402898ed5c/_result.png';
   };
 
   // Start detection loop
