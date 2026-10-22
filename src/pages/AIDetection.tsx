@@ -95,6 +95,23 @@ export default function AIDetection() {
     setYoutubeExits(0);
   };
 
+  // Download sample crowd video for testing
+  const downloadSampleVideo = () => {
+    // Create a link to download a sample crowd video
+    // Using a public domain crowd video from Pexels
+    const link = document.createElement('a');
+    link.href = 'https://www.pexels.com/download/video/3129671/';
+    link.download = 'crowd-sample.mp4';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show instruction
+    setError('Sample video download started. After downloading, use "Upload Video" to load it for AI detection.');
+    setTimeout(() => setError(null), 5000);
+  };
+
   // Start webcam
   const startWebcam = async () => {
     if (!isModelReady) return;
@@ -171,6 +188,10 @@ export default function AIDetection() {
     setTotalDetected(0);
   };
 
+  // Frame counter for throttling
+  const frameCountRef = useRef(0);
+  const DETECTION_INTERVAL = 3; // Process every 3rd frame (20fps -> ~6-7 detections/sec)
+
   // REAL AI DETECTION - Process video frame with TensorFlow.js
   const detectFrame = async () => {
     if (!isDetectingRef.current || !modelRef.current) return;
@@ -179,7 +200,6 @@ export default function AIDetection() {
     const video = videoRef.current;
     
     if (!canvas || !video) {
-      // Retry after short delay
       setTimeout(() => {
         if (isDetectingRef.current) {
           animationFrameRef.current = requestAnimationFrame(detectFrame);
@@ -190,7 +210,6 @@ export default function AIDetection() {
 
     // Check if video is ready
     if (video.readyState < 2) {
-      // Video not ready, retry
       setTimeout(() => {
         if (isDetectingRef.current) {
           animationFrameRef.current = requestAnimationFrame(detectFrame);
@@ -203,83 +222,89 @@ export default function AIDetection() {
     if (!ctx) return;
 
     try {
+      // Increment frame counter
+      frameCountRef.current++;
+
       // Set canvas size to match video
       if (video.videoWidth > 0 && video.videoHeight > 0) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
       }
 
-      // Draw current video frame
+      // Draw current video frame (always draw for smooth video playback)
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Run REAL AI detection on the frame
-      const startTime = performance.now();
-      const predictions = await modelRef.current.detect(canvas);
-      const inferenceTime = performance.now() - startTime;
+      // Only run AI detection every N frames to prevent overwhelming the model
+      if (frameCountRef.current % DETECTION_INTERVAL === 0) {
+        // Run REAL AI detection on the frame
+        const startTime = performance.now();
+        const predictions = await modelRef.current.detect(canvas);
+        const inferenceTime = performance.now() - startTime;
 
-      // Filter for person detections with confidence > 50%
-      const personDetections: Detection[] = predictions
-        .filter(pred => pred.class === 'person' && pred.score > 0.5)
-        .map(pred => ({
-          class: pred.class,
-          score: pred.score,
-          bbox: pred.bbox as [number, number, number, number]
-        }));
+        // Filter for person detections with confidence > 50%
+        const personDetections: Detection[] = predictions
+          .filter(pred => pred.class === 'person' && pred.score > 0.5)
+          .map(pred => ({
+            class: pred.class,
+            score: pred.score,
+            bbox: pred.bbox as [number, number, number, number]
+          }));
 
-      // Update counts based on REAL detections
-      const personCount = personDetections.length;
-      setCurrentDetections(personDetections);
-      setCurrentCount(personCount);
-      
-      // Update peak count
-      setPeakCount(prev => Math.max(prev, personCount));
-      
-      // Accumulate total detected
-      setTotalDetected(prev => prev + personCount);
+        // Update counts based on REAL detections
+        const personCount = personDetections.length;
+        setCurrentDetections(personDetections);
+        setCurrentCount(personCount);
+        
+        // Update peak count
+        setPeakCount(prev => Math.max(prev, personCount));
+        
+        // Accumulate total detected (only count unique detections per interval)
+        setTotalDetected(prev => prev + personCount);
 
-      // Draw bounding boxes with REAL detection data
-      personDetections.forEach((detection, index) => {
-        const [x, y, width, height] = detection.bbox;
+        // Draw bounding boxes with REAL detection data
+        personDetections.forEach((detection, index) => {
+          const [x, y, width, height] = detection.bbox;
 
-        // Draw bounding box
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+          // Draw bounding box
+          ctx.strokeStyle = '#00ff00';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x, y, width, height);
 
-        // Draw label with person number and confidence
-        const label = `Person #${index + 1} (${(detection.score * 100).toFixed(0)}%)`;
-        ctx.font = 'bold 14px Arial';
-        const textWidth = ctx.measureText(label).width;
+          // Draw label with person number and confidence
+          const label = `Person #${index + 1} (${(detection.score * 100).toFixed(0)}%)`;
+          ctx.font = 'bold 14px Arial';
+          const textWidth = ctx.measureText(label).width;
 
-        // Label background
+          // Label background
+          ctx.fillStyle = '#00ff00';
+          ctx.fillRect(x, y - 22, textWidth + 12, 22);
+
+          // Label text
+          ctx.fillStyle = '#000000';
+          ctx.fillText(label, x + 6, y - 6);
+        });
+
+        // Draw counting overlay at top
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, 60);
+
+        ctx.font = 'bold 20px Arial';
         ctx.fillStyle = '#00ff00';
-        ctx.fillRect(x, y - 22, textWidth + 12, 22);
+        ctx.fillText(`👥 CURRENT: ${personCount}`, 20, 38);
 
-        // Label text
-        ctx.fillStyle = '#000000';
-        ctx.fillText(label, x + 6, y - 6);
-      });
+        ctx.fillStyle = '#ffff00';
+        ctx.fillText(`📊 PEAK: ${Math.max(peakCount, personCount)}`, 250, 38);
 
-      // Draw counting overlay at top
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-      ctx.fillRect(0, 0, canvas.width, 60);
+        ctx.fillStyle = '#00ffff';
+        ctx.fillText(`🔍 AI DETECTING`, 450, 38);
 
-      ctx.font = 'bold 20px Arial';
-      ctx.fillStyle = '#00ff00';
-      ctx.fillText(`👥 CURRENT: ${personCount}`, 20, 38);
-
-      ctx.fillStyle = '#ffff00';
-      ctx.fillText(`📊 PEAK: ${Math.max(peakCount, personCount)}`, 250, 38);
-
-      ctx.fillStyle = '#00ffff';
-      ctx.fillText(`🔍 AI DETECTING`, 450, 38);
-
-      // Calculate FPS
-      if (inferenceTime > 0) {
-        setFps(Math.round(1000 / inferenceTime));
+        // Calculate FPS
+        if (inferenceTime > 0) {
+          setFps(Math.round(1000 / inferenceTime));
+        }
       }
 
-      // Continue detection loop - use requestAnimationFrame for smooth processing
+      // Continue detection loop
       if (isDetectingRef.current && !video.paused && !video.ended) {
         animationFrameRef.current = requestAnimationFrame(detectFrame);
       }
@@ -373,6 +398,7 @@ export default function AIDetection() {
 
     setError(null);
     isDetectingRef.current = true;
+    frameCountRef.current = 0; // Reset frame counter
     setIsDetecting(true);
 
     if (videoSource === 'demo') {
@@ -385,6 +411,7 @@ export default function AIDetection() {
   // Stop detection
   const stopDetection = () => {
     isDetectingRef.current = false;
+    frameCountRef.current = 0; // Reset frame counter
     setIsDetecting(false);
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -490,6 +517,15 @@ export default function AIDetection() {
           </button>
 
           <button
+            onClick={downloadSampleVideo}
+            disabled={!isModelReady || isDetecting}
+            className="p-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <Upload size={20} />
+            <span>Get Sample Video</span>
+          </button>
+
+          <button
             onClick={startWebcam}
             disabled={!isModelReady || isDetecting}
             className="p-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -592,15 +628,21 @@ export default function AIDetection() {
         {/* YouTube Manual Counting */}
         {videoSource === 'youtube' && (
           <div className="mb-6 p-4 bg-gradient-to-r from-red-900 to-red-800 rounded-lg border-2 border-red-500">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+            <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-white">
               <Users size={24} />
-              YOUTUBE MANUAL COUNTING
+              YOUTUBE VIDEO - MANUAL COUNTING
               {isYoutubeCounting && (
                 <span className="ml-2 px-2 py-1 bg-green-600 rounded text-xs animate-pulse">
                   ● COUNTING
                 </span>
               )}
             </h3>
+            <div className="mb-4 p-3 bg-yellow-900 bg-opacity-30 border border-yellow-700 rounded">
+              <p className="text-xs text-yellow-300">
+                ⚠️ <strong>Why manual counting?</strong> YouTube videos are embedded in a secure iframe that prevents direct frame access for AI processing. 
+                For automatic AI detection, please use "Get Sample Video" to download a crowd video, then upload it using "Upload Video" button.
+              </p>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="p-4 bg-gray-900 rounded-lg border-2 border-green-500">
@@ -819,19 +861,18 @@ export default function AIDetection() {
           <h3 className="text-lg font-semibold mb-2 text-blue-400">About This AI Detection</h3>
           <ul className="text-sm text-gray-300 space-y-1">
             <li>• <strong>Real TensorFlow.js COCO-SSD model</strong> - not simulation</li>
-            <li>• <strong>Automatic person detection</strong> - AI analyzes every video frame</li>
-            <li>• <strong>Real-time counting</strong> - counts people as they appear</li>
+            <li>• <strong>Automatic person detection</strong> - AI analyzes every 3rd video frame for optimal performance</li>
+            <li>• <strong>Real-time counting</strong> - counts people as they appear with bounding boxes</li>
             <li>• <strong>Confidence scores</strong> - shows detection accuracy (50%+ threshold)</li>
-            <li>• <strong>Works with all sources</strong> - uploaded videos, webcam, demo images</li>
-            <li>• <strong>Live dashboard</strong> - current count, peak count, total detected</li>
-            <li>• <strong>Crowd density classification</strong> - Low/Medium/High alerts</li>
+            <li>• <strong>Works with uploaded videos, webcam, and demo images</strong> - automatic AI detection</li>
+            <li>• <strong>YouTube videos</strong> - manual counting only (iframe security restriction)</li>
+            <li>• <strong>Live dashboard</strong> - current count, peak count, total detected, crowd density</li>
+            <li>• <strong>Frame throttling</strong> - processes every 3rd frame to maintain smooth video playback</li>
           </ul>
           <div className="mt-3 p-3 bg-green-900 bg-opacity-30 border border-green-700 rounded">
             <p className="text-xs text-green-300">
-              <strong>💡 How it works:</strong> Upload any video → Click "Start Detection" → 
-              TensorFlow.js COCO-SSD model analyzes each frame in real-time → 
-              Detects people with bounding boxes → Automatically counts them → 
-              Updates the live dashboard with real AI detection results!
+              <strong>💡 Quick Start:</strong> Click "Get Sample Video" to download a test crowd video, then use "Upload Video" to load it. 
+              The AI will automatically detect and count people with green bounding boxes and confidence scores!
             </p>
           </div>
         </div>
