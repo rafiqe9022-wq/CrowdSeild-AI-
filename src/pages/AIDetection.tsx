@@ -172,7 +172,7 @@ export default function AIDetection() {
     setCurrentInFrame(0);
     setPeakCount(0);
     trackedPeopleRef.current = [];
-    nextPersonIdRef.current = 1;
+    nextPersonIdRef.current = 1; // Reset ID counter so total starts from 0
   };
 
   // Track people across frames accurately
@@ -297,11 +297,12 @@ export default function AIDetection() {
       // Track people accurately
       const trackedPeople = trackPeople(personDetections, canvas.width, canvas.height);
 
-      // Update counts - simply count all people detected
+      // Update counts
       const uniquePeopleCount = trackedPeople.length;
       setCurrentInFrame(uniquePeopleCount);
       setPeakCount(prev => Math.max(prev, uniquePeopleCount));
-      setEntries(uniquePeopleCount); // Total unique people seen
+      // Total unique = highest ID ever assigned (new people get new IDs)
+      setEntries(nextPersonIdRef.current - 1);
 
       // Draw detection info
       ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
@@ -422,7 +423,8 @@ export default function AIDetection() {
       // Update counts
       setCurrentInFrame(trackedPeople.length);
       setPeakCount(trackedPeople.length);
-      setEntries(trackedPeople.length);
+      // Total unique = highest ID ever assigned
+      setEntries(nextPersonIdRef.current - 1);
 
       // Draw bounding boxes with center dots and IDs
       trackedPeople.forEach((person, index) => {
