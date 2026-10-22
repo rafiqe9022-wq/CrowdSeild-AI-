@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { detectionEngine, DetectionResult } from '../utils/detectionEngine';
-import { Camera, Upload, Play, Pause, AlertTriangle, Activity } from 'lucide-react';
+import { Camera, Upload, Play, Pause, AlertTriangle, Activity, ImageIcon } from 'lucide-react';
 
 export default function AIDetection() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -11,11 +11,12 @@ export default function AIDetection() {
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [isModelReady, setIsModelReady] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
-  const [videoSource, setVideoSource] = useState<'none' | 'webcam' | 'file'>('none');
+  const [videoSource, setVideoSource] = useState<'none' | 'webcam' | 'file' | 'demo'>('none');
   const [currentResult, setCurrentResult] = useState<DetectionResult | null>(null);
   const [fps, setFps] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string>('');
+  const [demoImage, setDemoImage] = useState<HTMLImageElement | null>(null);
 
   // Density thresholds (people detected in frame)
   const DENSITY_THRESHOLDS = {
@@ -93,14 +94,40 @@ export default function AIDetection() {
     }
   };
 
+  // Load demo image
+  const loadDemoImage = () => {
+    setError(null);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      setDemoImage(img);
+      setVideoSource('demo');
+      setVideoFileName('Demo Crowd Scene');
+    };
+    img.onerror = () => {
+      setError('Failed to load demo image. Please check your internet connection.');
+    };
+    img.src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1280&h=720&fit=crop';
+  };
+
   // Start detection loop
   const startDetection = useCallback(async () => {
-    if (!isModelReady || !videoRef.current || !canvasRef.current) {
+    if (!isModelReady || !canvasRef.current) {
+      return;
+    }
+
+    // For demo mode, we need the demo image
+    if (videoSource === 'demo' && !demoImage) {
+      setError('Demo image not loaded yet. Please wait.');
+      return;
+    }
+
+    // For video modes, we need the video element
+    if ((videoSource === 'webcam' || videoSource === 'file') && !videoRef.current) {
       return;
     }
 
     setIsDetecting(true);
-    const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
@@ -113,7 +140,54 @@ export default function AIDetection() {
       if (!isDetecting) return;
 
       try {
-        // Set canvas size to match video
+        // Handle demo mode (static image)
+        if (videoSource === 'demo' && demoImage) {
+          canvas.width = demoImage.width;
+          canvas.height = demoImage.height;
+
+          // Run AI detection on the image
+          const result = await detectionEngine.detectFromImage(demoImage);
+          setCurrentResult(result);
+
+          // Calculate FPS
+          frameCount++;
+          const currentTime = performance.now();
+          if (currentTime - lastFrameTime >= 1000) {
+            setFps(frameCount);
+            frameCount = 0;
+            lastFrameTime = currentTime;
+          }
+
+          // Draw image
+          ctx.drawImage(demoImage, 0, 0, canvas.width, canvas.height);
+
+          // Draw bounding boxes
+          result.detections.forEach((detection, index) => {
+            const [x, y, width, height] = detection.bbox;
+
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, width, height);
+
+            const label = `Person ${(detection.score * 100).toFixed(0)}%`;
+            ctx.font = 'bold 16px Arial';
+            const textWidth = ctx.measureText(label).width;
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(x, y - 25, textWidth + 10, 25);
+
+            ctx.fillStyle = '#000000';
+            ctx.fillText(label, x + 5, y - 7);
+          });
+
+          // For demo mode, run detection once then stop the loop
+          setIsDetecting(false);
+          return;
+        }
+
+        // Handle video modes (webcam or file)
+        if (!videoRef.current) return;
+        const video = videoRef.current;
+
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
 
@@ -154,7 +228,7 @@ export default function AIDetection() {
           ctx.fillText(label, x + 5, y - 7);
         });
 
-        // Continue loop
+        // Continue loop for video modes
         animationFrameRef.current = requestAnimationFrame(detect);
       } catch (err) {
         console.error('Detection error:', err);
@@ -164,7 +238,7 @@ export default function AIDetection() {
     };
 
     detect();
-  }, [isModelReady, isDetecting]);
+  }, [isModelReady, isDetecting, videoSource, demoImage]);
 
   // Stop detection
   const stopDetection = () => {
@@ -253,7 +327,17 @@ export default function AIDetection() {
         </div>
 
         {/* Controls */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Load Demo Button */}
+          <button
+            onClick={loadDemoImage}
+            disabled={!isModelReady || isDetecting}
+            className="p-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <ImageIcon size={20} />
+            <span>Load Demo</span>
+          </button>
+
           {/* Webcam Button */}
           <button
             onClick={startWebcam}
@@ -303,7 +387,7 @@ export default function AIDetection() {
             autoPlay
             playsInline
             muted
-            className="w-full h-auto"
+            className={`w-full h-auto ${videoSource === 'demo' ? 'hidden' : ''}`}
             onPlay={() => {
               if (videoSource === 'file' && videoRef.current) {
                 videoRef.current.loop = true;
@@ -312,13 +396,15 @@ export default function AIDetection() {
           />
           <canvas
             ref={canvasRef}
-            className="absolute top-0 left-0 w-full h-full"
+            className={`absolute top-0 left-0 w-full h-full ${videoSource === 'demo' ? 'relative' : ''}`}
           />
 
           {/* Video Source Indicator */}
           {videoSource !== 'none' && (
             <div className="absolute top-4 left-4 bg-black bg-opacity-70 px-3 py-1 rounded text-sm">
-              {videoSource === 'webcam' ? '📹 LIVE WEBCAM' : `🎬 ${videoFileName}`}
+              {videoSource === 'webcam' ? '📹 LIVE WEBCAM' : 
+               videoSource === 'demo' ? '🖼️ DEMO IMAGE' : 
+               `🎬 ${videoFileName}`}
             </div>
           )}
 
@@ -328,7 +414,7 @@ export default function AIDetection() {
               <div className="text-center">
                 <Camera size={64} className="mx-auto mb-4 opacity-50" />
                 <p className="text-lg">Select a video source to begin</p>
-                <p className="text-sm mt-2">Use webcam or upload a video file</p>
+                <p className="text-sm mt-2">Load demo, use webcam, or upload a video file</p>
               </div>
             </div>
           )}

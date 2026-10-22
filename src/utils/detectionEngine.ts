@@ -97,6 +97,32 @@ export class AIDetectionEngine {
     };
   }
 
+  async detectFromImage(imageElement: HTMLImageElement): Promise<DetectionResult> {
+    if (!this.model || !this.isReady) {
+      throw new Error('Model not initialized. Call initialize() first.');
+    }
+
+    const startTime = performance.now();
+    const predictions = await this.model.detect(imageElement);
+    const endTime = performance.now();
+    const inferenceTime = endTime - startTime;
+
+    const personDetections: Detection[] = predictions
+      .filter(pred => pred.class === 'person' && pred.score > 0.5)
+      .map(pred => ({
+        class: pred.class,
+        score: pred.score,
+        bbox: pred.bbox as [number, number, number, number],
+      }));
+
+    return {
+      detections: personDetections,
+      personCount: personDetections.length,
+      timestamp: Date.now(),
+      inferenceTime,
+    };
+  }
+
   getStatus(): { isLoading: boolean; isReady: boolean } {
     return {
       isLoading: this.isLoading,

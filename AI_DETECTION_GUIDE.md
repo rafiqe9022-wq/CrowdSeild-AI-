@@ -50,14 +50,20 @@ The first time you open the page, the AI model will download (~5MB). You'll see:
 
 ### 5. Select Video Source
 
-You have two options:
+You have three options:
 
-#### Option A: Use Webcam
+#### Option A: Load Demo (Recommended for Quick Demo)
+1. Click **"Load Demo"** button (orange button)
+2. A pre-loaded crowd scene image will appear
+3. This is the fastest way to show judges the AI detection working
+4. No setup required - works instantly
+
+#### Option B: Use Webcam
 1. Click **"Use Webcam"** button
 2. Allow camera permissions when prompted
 3. You'll see your live camera feed
 
-#### Option B: Upload Video
+#### Option C: Upload Video
 1. Click **"Upload Video"** button
 2. Select an MP4, WebM, or other video file
 3. Maximum file size: 100MB
@@ -214,6 +220,28 @@ Video Frame → TensorFlow.js → COCO-SSD Model → Detections
 
 ### Demo Script for Judges
 
+**Quick Demo (Using Demo Image)** - 2 minutes:
+
+**Step 1: Introduction** (20 seconds)
+> "This is our AI-powered crowd detection system. It uses real machine learning to detect people in images and video."
+
+**Step 2: Load Demo** (30 seconds)
+> "Let me load our demo crowd scene. Watch as the AI detects people and draws bounding boxes."
+> 
+> *Click "Load Demo" button, then "Start Detection"*
+> 
+> "See the green boxes? Each one has a confidence score like 'Person 91%'. These are real ML predictions, not simulations."
+
+**Step 3: Show Statistics** (30 seconds)
+> "The system detected 15 people in this image with an average confidence of 87%. The crowd density is classified as MEDIUM. Inference took 95 milliseconds."
+
+**Step 4: Explain Integration** (20 seconds)
+> "This detection data integrates with our alert system. If density exceeds thresholds, it automatically generates alerts for operators."
+
+---
+
+**Full Demo (With Webcam/Video)** - 3 minutes:
+
 **Step 1: Introduction** (30 seconds)
 > "This is our AI-powered crowd detection system. It uses real machine learning to detect people in video feeds."
 
@@ -240,7 +268,7 @@ Video Frame → TensorFlow.js → COCO-SSD Model → Detections
 **Step 6: Explain Integration** (30 seconds)
 > "This detection data integrates with our alert system. If density exceeds thresholds, it automatically generates alerts for operators."
 
-**Total Demo Time**: ~3 minutes
+**Total Demo Time**: 2-3 minutes depending on which path you choose
 
 ---
 
@@ -295,6 +323,16 @@ Video Frame → TensorFlow.js → COCO-SSD Model → Detections
 - Check lighting (too dark = poor detection)
 - People should be at least 50x50 pixels in the frame
 - Adjust video position/zoom if needed
+
+### Demo image not loading
+
+**Cause**: Internet connection issue or CORS problem
+
+**Solution**:
+- Check internet connection
+- Refresh the page
+- Try using webcam or upload video instead
+- The demo image requires internet to load from Unsplash
 
 ---
 
@@ -459,16 +497,17 @@ If you encounter issues:
 
 Before your hackathon presentation:
 
+- [ ] Test demo mode works (Load Demo button)
 - [ ] Test webcam detection works
 - [ ] Download a good crowd video for demo
 - [ ] Test video upload with demo video
 - [ ] Verify model loads quickly (or pre-load it)
-- [ ] Practice the 3-minute demo script
+- [ ] Practice the 2-3 minute demo script
 - [ ] Have backup video ready in case webcam fails
 - [ ] Ensure laptop has good lighting for webcam
 - [ ] Test on the actual presentation device
 - [ ] Close unnecessary browser tabs for performance
-- [ ] Have internet connection for first model load
+- [ ] Have internet connection for first model load and demo image
 
 ---
 
