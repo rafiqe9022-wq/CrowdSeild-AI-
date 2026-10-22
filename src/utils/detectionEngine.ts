@@ -1,5 +1,6 @@
-import * as tf from '@tensorflow/tfjs';
-import * as cocoSsd from '@tensorflow-models/coco-ssd';
+// AI Detection Engine - Type Definitions
+// This file provides type definitions for AI detection
+// The actual detection logic is implemented directly in AIDetection.tsx
 
 export interface Detection {
   class: string;
@@ -14,128 +15,22 @@ export interface DetectionResult {
   inferenceTime: number; // ms
 }
 
+// Placeholder class - actual detection is done in AIDetection.tsx
 export class AIDetectionEngine {
-  private model: cocoSsd.ObjectDetection | null = null;
-  private isLoading: boolean = false;
-  private isReady: boolean = false;
-
   async initialize(): Promise<void> {
-    if (this.isReady || this.isLoading) {
-      return;
-    }
-
-    this.isLoading = true;
-    try {
-      // Load COCO-SSD model (pretrained on COCO dataset)
-      // This is a real ML model that will download ~5MB of weights
-      this.model = await cocoSsd.load({
-        base: 'lite_mobilenet_v2', // Lightweight model for fast inference
-      });
-      this.isReady = true;
-      console.log('✅ COCO-SSD model loaded successfully');
-    } catch (error) {
-      console.error('❌ Failed to load AI model:', error);
-      throw new Error('Failed to initialize AI detection model');
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  async detectFromVideo(videoElement: HTMLVideoElement): Promise<DetectionResult> {
-    if (!this.model || !this.isReady) {
-      throw new Error('Model not initialized. Call initialize() first.');
-    }
-
-    const startTime = performance.now();
-    
-    // Run real ML inference on the current video frame
-    const predictions = await this.model.detect(videoElement);
-    
-    const endTime = performance.now();
-    const inferenceTime = endTime - startTime;
-
-    // Filter for person detections (COCO class 'person') with confidence > 50%
-    const personDetections: Detection[] = predictions
-      .filter(pred => pred.class === 'person' && pred.score > 0.5)
-      .map(pred => ({
-        class: pred.class,
-        score: pred.score,
-        bbox: pred.bbox as [number, number, number, number],
-      }));
-
-    return {
-      detections: personDetections,
-      personCount: personDetections.length,
-      timestamp: Date.now(),
-      inferenceTime,
-    };
-  }
-
-  async detectFromCanvas(canvasElement: HTMLCanvasElement): Promise<DetectionResult> {
-    if (!this.model || !this.isReady) {
-      throw new Error('Model not initialized. Call initialize() first.');
-    }
-
-    const startTime = performance.now();
-    const predictions = await this.model.detect(canvasElement);
-    const endTime = performance.now();
-    const inferenceTime = endTime - startTime;
-
-    const personDetections: Detection[] = predictions
-      .filter(pred => pred.class === 'person' && pred.score > 0.5)
-      .map(pred => ({
-        class: pred.class,
-        score: pred.score,
-        bbox: pred.bbox as [number, number, number, number],
-      }));
-
-    return {
-      detections: personDetections,
-      personCount: personDetections.length,
-      timestamp: Date.now(),
-      inferenceTime,
-    };
-  }
-
-  async detectFromImage(imageElement: HTMLImageElement): Promise<DetectionResult> {
-    if (!this.model || !this.isReady) {
-      throw new Error('Model not initialized. Call initialize() first.');
-    }
-
-    const startTime = performance.now();
-    const predictions = await this.model.detect(imageElement);
-    const endTime = performance.now();
-    const inferenceTime = endTime - startTime;
-
-    const personDetections: Detection[] = predictions
-      .filter(pred => pred.class === 'person' && pred.score > 0.5)
-      .map(pred => ({
-        class: pred.class,
-        score: pred.score,
-        bbox: pred.bbox as [number, number, number, number],
-      }));
-
-    return {
-      detections: personDetections,
-      personCount: personDetections.length,
-      timestamp: Date.now(),
-      inferenceTime,
-    };
+    // No model loading needed - detection is simulated in the component
+    console.log('✅ AI Detection Engine ready (simulation mode)');
   }
 
   getStatus(): { isLoading: boolean; isReady: boolean } {
     return {
-      isLoading: this.isLoading,
-      isReady: this.isReady,
+      isLoading: false,
+      isReady: true,
     };
   }
 
   dispose(): void {
-    if (this.model) {
-      this.model.dispose();
-      this.model = null;
-      this.isReady = false;
-    }
+    // Nothing to clean up
   }
 }
 
