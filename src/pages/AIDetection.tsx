@@ -307,41 +307,54 @@ export default function AIDetection() {
       ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw bounding boxes for detected people
-      personDetections.forEach((detection, index) => {
-        if (!detection.boundingBox) return;
+      // Draw bounding boxes for tracked people (with IDs and dots)
+      trackedPeople.forEach((person) => {
+        // Find the detection that matches this tracked person to get confidence score
+        const matchingDetection = personDetections.find(det => {
+          if (!det.boundingBox) return false;
+          const detX = det.boundingBox.originX * canvas.width;
+          const detY = det.boundingBox.originY * canvas.height;
+          const detWidth = det.boundingBox.width * canvas.width;
+          const detHeight = det.boundingBox.height * canvas.height;
+          const detCenterX = detX + detWidth / 2;
+          const detCenterY = detY + detHeight / 2;
+          const personCenterX = person.x + person.width / 2;
+          const personCenterY = person.y + person.height / 2;
+          const distance = Math.sqrt(
+            Math.pow(detCenterX - personCenterX, 2) + 
+            Math.pow(detCenterY - personCenterY, 2)
+          );
+          return distance < 50; // Close match
+        });
         
-        const x = detection.boundingBox.originX * canvas.width;
-        const y = detection.boundingBox.originY * canvas.height;
-        const width = detection.boundingBox.width * canvas.width;
-        const height = detection.boundingBox.height * canvas.height;
-        const score = detection.categories[0].score;
+        const score = matchingDetection?.categories[0]?.score || 0;
 
         // Green bounding box
         ctx.strokeStyle = '#00ff00';
         ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        ctx.strokeRect(person.x, person.y, person.width, person.height);
 
-        // Label with confidence
-        const label = `Person (${(score * 100).toFixed(0)}%)`;
+        // Draw center dot
+        const centerX = person.x + person.width / 2;
+        const centerY = person.y + person.height / 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
+        ctx.fillStyle = '#ffff00';
+        ctx.fill();
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Label with ID and confidence
+        const label = `#${person.id} (${(score * 100).toFixed(0)}%)`;
         ctx.font = 'bold 14px Arial';
         const textWidth = ctx.measureText(label).width;
 
         ctx.fillStyle = '#00ff00';
-        ctx.fillRect(x, y - 22, textWidth + 12, 22);
+        ctx.fillRect(person.x, person.y - 22, textWidth + 12, 22);
 
         ctx.fillStyle = '#000000';
-        ctx.fillText(label, x + 6, y - 6);
-      });
-
-      // Draw tracked people IDs
-      trackedPeople.forEach(person => {
-        const centerX = person.x + person.width / 2;
-        const centerY = person.y + person.height / 2;
-        
-        ctx.fillStyle = '#00ff00';
-        ctx.font = 'bold 20px Arial';
-        ctx.fillText(`#${person.id}`, centerX - 15, centerY);
+        ctx.fillText(label, person.x + 6, person.y - 6);
       });
 
       // Draw counting overlay at top
@@ -350,16 +363,16 @@ export default function AIDetection() {
 
       ctx.font = 'bold 24px Arial';
       ctx.fillStyle = '#00ff00';
-      ctx.fillText(`👥 PEOPLE DETECTED: ${uniquePeopleCount}`, 20, 35);
+      ctx.fillText(`👥 CURRENT: ${uniquePeopleCount}`, 20, 35);
 
       ctx.fillStyle = '#ffff00';
-      ctx.fillText(`📊 TOTAL UNIQUE: ${entries}`, 20, 65);
+      ctx.fillText(`📊 TOTAL: ${entries}`, 20, 65);
 
       ctx.fillStyle = '#00ffff';
       ctx.fillText(`🔝 PEAK: ${peakCount}`, 400, 35);
 
       ctx.fillStyle = '#ff00ff';
-      ctx.fillText(`🔍 AI ACTIVE`, 400, 65);
+      ctx.fillText(`🔍 TRACKING ACTIVE`, 400, 65);
 
       // Calculate FPS
       if (inferenceTime > 0) {
@@ -411,15 +424,28 @@ export default function AIDetection() {
       setPeakCount(trackedPeople.length);
       setEntries(trackedPeople.length);
 
-      // Draw bounding boxes with IDs
+      // Draw bounding boxes with center dots and IDs
       trackedPeople.forEach((person, index) => {
         const score = personDetections[index]?.categories[0]?.score || 0;
+        const centerX = person.x + person.width / 2;
+        const centerY = person.y + person.height / 2;
 
+        // Green bounding box
         ctx.strokeStyle = '#00ff00';
         ctx.lineWidth = 3;
         ctx.strokeRect(person.x, person.y, person.width, person.height);
 
-        const label = `Person #${person.id} (${(score * 100).toFixed(0)}%)`;
+        // Draw center dot
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
+        ctx.fillStyle = '#ffff00';
+        ctx.fill();
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Label with ID and confidence
+        const label = `#${person.id} (${(score * 100).toFixed(0)}%)`;
         ctx.font = 'bold 14px Arial';
         const textWidth = ctx.measureText(label).width;
 
@@ -661,7 +687,7 @@ export default function AIDetection() {
                 <Camera size={64} className="mx-auto mb-4 opacity-50" />
                 <p className="text-lg">Select a video source to begin</p>
                 <p className="text-sm mt-2">Upload a video, use webcam, load demo, or watch YouTube</p>
-                <p className="text-xs mt-2 text-yellow-500">💡 AI will detect and count people entering automatically!</p>
+                <p className="text-xs mt-2 text-yellow-500">💡 AI will detect people with green boxes and yellow center dots!</p>
               </div>
             </div>
           )}
@@ -769,19 +795,19 @@ export default function AIDetection() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 bg-gray-900 rounded-lg border-2 border-green-500">
-                <div className="text-gray-400 text-sm mb-1">👥 People Detected</div>
+                <div className="text-gray-400 text-sm mb-1">👥 Current People</div>
                 <div className="text-5xl font-bold text-green-400">
                   {currentInFrame}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">in current frame</div>
+                <div className="text-xs text-gray-500 mt-1">people in frame now</div>
               </div>
 
               <div className="p-4 bg-gray-900 rounded-lg border-2 border-yellow-500">
-                <div className="text-gray-400 text-sm mb-1">📊 Total Unique</div>
+                <div className="text-gray-400 text-sm mb-1">📊 Total Unique Visitors</div>
                 <div className="text-5xl font-bold text-yellow-400">
                   {entries}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">unique people seen</div>
+                <div className="text-xs text-gray-500 mt-1">all unique people seen</div>
               </div>
 
               <div className="p-4 bg-gray-900 rounded-lg border-2 border-blue-500">
@@ -804,9 +830,9 @@ export default function AIDetection() {
 
             <div className="mt-4 p-3 bg-blue-900 bg-opacity-30 border border-blue-700 rounded">
               <p className="text-xs text-blue-300">
-                💡 <strong>How it works:</strong> AI detects all people in the video (green boxes). 
-                Each person gets a unique ID (#1, #2, #3) and is tracked across frames. 
-                The system counts unique people accurately without double-counting.
+                💡 <strong>How it works:</strong> AI detects people with green bounding boxes and yellow center dots. 
+                Each person gets a stable tracking ID (#1, #2, #3) that persists as they move. 
+                Current count shows people in frame now. Total unique shows all different people seen.
               </p>
             </div>
           </div>
@@ -846,17 +872,18 @@ export default function AIDetection() {
           <h3 className="text-lg font-semibold mb-2 text-blue-400">About This AI Detection</h3>
           <ul className="text-sm text-gray-300 space-y-1">
             <li>• <strong>MediaPipe AI</strong> - Google's advanced object detection model</li>
-            <li>• <strong>Accurate counting</strong> - Counts all unique people in the video</li>
-            <li>• <strong>Person tracking</strong> - Each person gets a unique ID (#1, #2, #3)</li>
-            <li>• <strong>No double-counting</strong> - Same person tracked across frames</li>
-            <li>• <strong>Real-time detection</strong> - Green boxes around detected people</li>
+            <li>• <strong>Dot-based tracking</strong> - Yellow dot at center of each person for easy identification</li>
+            <li>• <strong>Stable tracking IDs</strong> - Each person keeps same ID (#1, #2, #3) across frames</li>
+            <li>• <strong>Accurate counting</strong> - Current people count updates as people enter/leave frame</li>
+            <li>• <strong>No double-counting</strong> - Same person tracked continuously, not counted multiple times</li>
+            <li>• <strong>Real-time detection</strong> - Green bounding boxes with center dots and IDs</li>
             <li>• <strong>Works with uploaded videos, webcam, and demo images</strong></li>
             <li>• <strong>YouTube videos</strong> - Manual counting only (iframe restriction)</li>
           </ul>
           <div className="mt-3 p-3 bg-green-900 bg-opacity-30 border border-green-700 rounded">
             <p className="text-xs text-green-300">
-              <strong>💡 Quick Start:</strong> Upload any crowd video → AI automatically detects and counts all unique people. 
-              Each person is tracked with a unique ID to prevent double-counting!
+              <strong>💡 Quick Start:</strong> Upload any crowd video → AI detects people with green boxes and yellow center dots. 
+              Each person gets a stable ID (#1, #2, #3) that persists as they move. The current count updates automatically!
             </p>
           </div>
         </div>
