@@ -21,12 +21,18 @@ export default function AIDetection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isDetecting, setIsDetecting] = useState(false);
-  const [videoSource, setVideoSource] = useState<'none' | 'webcam' | 'file' | 'demo'>('none');
+  const [videoSource, setVideoSource] = useState<'none' | 'webcam' | 'file' | 'demo' | 'youtube'>('none');
   const [currentResult, setCurrentResult] = useState<DetectionResult | null>(null);
   const [fps, setFps] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string>('');
   const [demoImage, setDemoImage] = useState<HTMLImageElement | null>(null);
+  
+  // Person counting state
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [totalExits, setTotalExits] = useState(0);
+  const [currentCount, setCurrentCount] = useState(0);
+  const [isCounting, setIsCounting] = useState(false);
 
   // Density thresholds
   const DENSITY_THRESHOLDS = {
@@ -80,6 +86,39 @@ export default function AIDetection() {
     };
     // Using a reliable crowd image from Unsplash
     img.src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1280&h=720&fit=crop';
+  };
+
+  // Load YouTube video
+  const loadYouTubeVideo = () => {
+    setError(null);
+    setVideoSource('youtube');
+    setVideoFileName('YouTube Demo Video');
+    // Reset counters
+    setTotalEntries(0);
+    setTotalExits(0);
+    setCurrentCount(0);
+  };
+
+  // Start person counting
+  const startCounting = () => {
+    if (videoSource === 'none') {
+      setError('Please load a video source first.');
+      return;
+    }
+    setIsCounting(true);
+    setError(null);
+  };
+
+  // Stop person counting
+  const stopCounting = () => {
+    setIsCounting(false);
+  };
+
+  // Reset counters
+  const resetCounters = () => {
+    setTotalEntries(0);
+    setTotalExits(0);
+    setCurrentCount(0);
   };
 
   // Start webcam
@@ -329,7 +368,7 @@ export default function AIDetection() {
         </div>
 
         {/* Controls */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
           {/* Load Demo Button */}
           <button
             onClick={loadDemoImage}
@@ -338,6 +377,18 @@ export default function AIDetection() {
           >
             <ImageIcon size={20} />
             <span>Load Demo</span>
+          </button>
+
+          {/* YouTube Video Button */}
+          <button
+            onClick={loadYouTubeVideo}
+            disabled={isDetecting}
+            className="p-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+            <span>YouTube Demo</span>
           </button>
 
           {/* Webcam Button */}
@@ -382,30 +433,133 @@ export default function AIDetection() {
           </button>
         </div>
 
+        {/* Person Counting Controls */}
+        {videoSource === 'youtube' && (
+          <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Activity size={20} />
+              Person Counting Mode
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <button
+                onClick={isCounting ? stopCounting : startCounting}
+                className={`p-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                  isCounting
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {isCounting ? <Pause size={20} /> : <Play size={20} />}
+                <span>{isCounting ? 'Stop Counting' : 'Start Counting'}</span>
+              </button>
+              <button
+                onClick={resetCounters}
+                className="p-3 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Reset Counters</span>
+              </button>
+              <div className="p-3 bg-gray-700 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-xs text-gray-400">Status</div>
+                  <div className={`text-sm font-semibold ${isCounting ? 'text-green-400' : 'text-gray-400'}`}>
+                    {isCounting ? '● COUNTING' : '○ STOPPED'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Counting Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-gray-900 rounded-lg border border-green-700">
+                <div className="text-gray-400 text-sm mb-1">Total Entries</div>
+                <div className="text-3xl font-bold text-green-400">{totalEntries}</div>
+                <div className="text-xs text-gray-500 mt-1">People entered</div>
+              </div>
+              <div className="p-4 bg-gray-900 rounded-lg border border-red-700">
+                <div className="text-gray-400 text-sm mb-1">Total Exits</div>
+                <div className="text-3xl font-bold text-red-400">{totalExits}</div>
+                <div className="text-xs text-gray-500 mt-1">People exited</div>
+              </div>
+              <div className="p-4 bg-gray-900 rounded-lg border border-blue-700">
+                <div className="text-gray-400 text-sm mb-1">Current Count</div>
+                <div className="text-3xl font-bold text-blue-400">{currentCount}</div>
+                <div className="text-xs text-gray-500 mt-1">People inside</div>
+              </div>
+            </div>
+
+            {/* Manual Counting Buttons */}
+            {isCounting && (
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    setTotalEntries(prev => prev + 1);
+                    setCurrentCount(prev => prev + 1);
+                  }}
+                  className="p-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors font-semibold"
+                >
+                  + Entry (Person Entered)
+                </button>
+                <button
+                  onClick={() => {
+                    setTotalExits(prev => prev + 1);
+                    setCurrentCount(prev => Math.max(0, prev - 1));
+                  }}
+                  className="p-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors font-semibold"
+                >
+                  - Exit (Person Exited)
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Video Display */}
         <div className="mb-6 relative bg-black rounded-lg overflow-hidden border border-gray-700">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`w-full h-auto ${videoSource === 'demo' ? 'hidden' : ''}`}
-            onPlay={() => {
-              if (videoSource === 'file' && videoRef.current) {
-                videoRef.current.loop = true;
-              }
-            }}
-          />
-          <canvas
-            ref={canvasRef}
-            className={`${videoSource === 'demo' ? 'w-full h-auto' : 'absolute top-0 left-0 w-full h-full'}`}
-          />
+          {/* YouTube Video */}
+          {videoSource === 'youtube' && (
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                className="absolute top-0 left-0 w-full h-full"
+                src="https://www.youtube.com/embed/lPDU-xx8S_8?autoplay=0&rel=0"
+                title="YouTube Demo Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
+
+          {/* Regular Video Element */}
+          {videoSource !== 'youtube' && (
+            <>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-auto ${videoSource === 'demo' ? 'hidden' : ''}`}
+                onPlay={() => {
+                  if (videoSource === 'file' && videoRef.current) {
+                    videoRef.current.loop = true;
+                  }
+                }}
+              />
+              <canvas
+                ref={canvasRef}
+                className={`${videoSource === 'demo' ? 'w-full h-auto' : 'absolute top-0 left-0 w-full h-full'}`}
+              />
+            </>
+          )}
 
           {/* Video Source Indicator */}
           {videoSource !== 'none' && (
-            <div className="absolute top-4 left-4 bg-black bg-opacity-70 px-3 py-1 rounded text-sm">
+            <div className="absolute top-4 left-4 bg-black bg-opacity-70 px-3 py-1 rounded text-sm z-10">
               {videoSource === 'webcam' ? '📹 LIVE WEBCAM' : 
                videoSource === 'demo' ? '🖼️ DEMO IMAGE' : 
+               videoSource === 'youtube' ? '📺 YOUTUBE VIDEO' :
                `🎬 ${videoFileName}`}
             </div>
           )}
@@ -416,7 +570,7 @@ export default function AIDetection() {
               <div className="text-center">
                 <Camera size={64} className="mx-auto mb-4 opacity-50" />
                 <p className="text-lg">Select a video source to begin</p>
-                <p className="text-sm mt-2">Load demo, use webcam, or upload a video file</p>
+                <p className="text-sm mt-2">Load demo, use webcam, upload video, or load YouTube demo</p>
               </div>
             </div>
           )}
@@ -464,6 +618,37 @@ export default function AIDetection() {
               <div className="text-3xl font-bold text-green-400">{fps}</div>
               <div className="text-xs text-gray-500 mt-1">frames per second</div>
             </div>
+          </div>
+        )}
+
+        {/* YouTube Video Counting Summary */}
+        {videoSource === 'youtube' && (totalEntries > 0 || totalExits > 0) && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-900 to-purple-900 rounded-lg border border-blue-700">
+            <h3 className="text-lg font-semibold mb-3 text-white flex items-center gap-2">
+              📊 Counting Summary
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-green-400">{totalEntries}</div>
+                <div className="text-sm text-gray-300 mt-1">Total Entries</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-red-400">{totalExits}</div>
+                <div className="text-sm text-gray-300 mt-1">Total Exits</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-blue-400">{currentCount}</div>
+                <div className="text-sm text-gray-300 mt-1">Currently Inside</div>
+              </div>
+            </div>
+            {isCounting && (
+              <div className="mt-3 text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-600 rounded-full">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <span className="text-sm font-semibold">Live Counting Active</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -528,9 +713,18 @@ export default function AIDetection() {
             <li>• Real-time confidence scores for each detection</li>
             <li>• Automatic crowd density classification</li>
             <li>• Performance metrics: inference time and FPS</li>
-            <li>• Supports demo images, webcam, and video uploads</li>
+            <li>• Supports demo images, webcam, video uploads, and YouTube videos</li>
+            <li>• Person counting mode: Track entries and exits in real-time</li>
             <li>• All processing happens locally in your browser</li>
           </ul>
+          {videoSource === 'youtube' && (
+            <div className="mt-3 p-3 bg-yellow-900 bg-opacity-30 border border-yellow-700 rounded">
+              <p className="text-xs text-yellow-300">
+                <strong>YouTube Demo Mode:</strong> Use the manual counting buttons to track people entering and exiting. 
+                Watch the video and click "+ Entry" when someone enters, or "- Exit" when someone leaves.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
