@@ -122,9 +122,31 @@ export default function AIDetection() {
     const url = URL.createObjectURL(file);
     if (videoRef.current) {
       videoRef.current.src = url;
+      videoRef.current.loop = true; // Loop video for continuous detection
       setVideoSource('file');
       setVideoFileName(file.name);
       resetCounters();
+      
+      // Add event listeners for video
+      videoRef.current.onloadeddata = () => {
+        console.log('✅ Video loaded and ready for detection');
+      };
+      
+      videoRef.current.onplay = () => {
+        console.log('▶️ Video started playing');
+        // Auto-start detection when video plays
+        if (isModelReady && !isDetecting) {
+          startDetection();
+        }
+      };
+      
+      videoRef.current.onpause = () => {
+        console.log('⏸️ Video paused');
+        // Pause detection when video pauses
+        if (isDetecting) {
+          stopDetection();
+        }
+      };
     }
   };
 
@@ -144,7 +166,23 @@ export default function AIDetection() {
     const video = videoRef.current;
     
     if (!canvas || !video) {
-      animationFrameRef.current = requestAnimationFrame(detectFrame);
+      // Retry after short delay
+      setTimeout(() => {
+        if (isDetectingRef.current) {
+          animationFrameRef.current = requestAnimationFrame(detectFrame);
+        }
+      }, 100);
+      return;
+    }
+
+    // Check if video is ready
+    if (video.readyState < 2) {
+      // Video not ready, retry
+      setTimeout(() => {
+        if (isDetectingRef.current) {
+          animationFrameRef.current = requestAnimationFrame(detectFrame);
+        }
+      }, 100);
       return;
     }
 
@@ -153,8 +191,10 @@ export default function AIDetection() {
 
     try {
       // Set canvas size to match video
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
 
       // Draw current video frame
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -179,11 +219,9 @@ export default function AIDetection() {
       setCurrentCount(personCount);
       
       // Update peak count
-      if (personCount > peakCount) {
-        setPeakCount(personCount);
-      }
+      setPeakCount(prev => Math.max(prev, personCount));
       
-      // Accumulate total (avoid double counting by only adding new detections)
+      // Accumulate total detected
       setTotalDetected(prev => prev + personCount);
 
       // Draw bounding boxes with REAL detection data
@@ -218,16 +256,20 @@ export default function AIDetection() {
       ctx.fillText(`👥 CURRENT: ${personCount}`, 20, 38);
 
       ctx.fillStyle = '#ffff00';
-      ctx.fillText(`📊 PEAK: ${peakCount}`, 250, 38);
+      ctx.fillText(`📊 PEAK: ${Math.max(peakCount, personCount)}`, 250, 38);
 
       ctx.fillStyle = '#00ffff';
       ctx.fillText(`🔍 AI DETECTING`, 450, 38);
 
       // Calculate FPS
-      setFps(Math.round(1000 / inferenceTime));
+      if (inferenceTime > 0) {
+        setFps(Math.round(1000 / inferenceTime));
+      }
 
-      // Continue detection loop
-      animationFrameRef.current = requestAnimationFrame(detectFrame);
+      // Continue detection loop - use requestAnimationFrame for smooth processing
+      if (isDetectingRef.current && !video.paused && !video.ended) {
+        animationFrameRef.current = requestAnimationFrame(detectFrame);
+      }
     } catch (err) {
       console.error('Detection error:', err);
       setError('Detection failed. Please try again.');
