@@ -16,7 +16,7 @@ export default function AIDetection() {
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [isModelReady, setIsModelReady] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
-  const [videoSource, setVideoSource] = useState<'none' | 'file' | 'demo'>('none');
+  const [videoSource, setVideoSource] = useState<'none' | 'webcam' | 'file' | 'demo' | 'youtube'>('none');
   const [fps, setFps] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string>('');
@@ -26,6 +26,11 @@ export default function AIDetection() {
   const [entries, setEntries] = useState(0);
   const [currentInFrame, setCurrentInFrame] = useState(0);
   const [peakCount, setPeakCount] = useState(0);
+  
+  // YouTube manual counting state
+  const [youtubeEntries, setYoutubeEntries] = useState(0);
+  const [youtubeExits, setYoutubeExits] = useState(0);
+  const [isYoutubeCounting, setIsYoutubeCounting] = useState(false);
 
   // Load MediaPipe model on component mount
   useEffect(() => {
@@ -86,6 +91,35 @@ export default function AIDetection() {
       setError('Failed to load demo image.');
     };
     img.src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1280&h=720&fit=crop';
+  };
+
+  // Load YouTube video
+  const loadYouTubeVideo = () => {
+    setError(null);
+    setVideoSource('youtube');
+    setVideoFileName('YouTube Demo Video');
+    setYoutubeEntries(0);
+    setYoutubeExits(0);
+  };
+
+  // Start webcam
+  const startWebcam = async () => {
+    if (!isModelReady) return;
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480 },
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setVideoSource('webcam');
+        setVideoFileName('Live Webcam');
+        resetCounters();
+      }
+    } catch (err) {
+      setError('Failed to access webcam. Please check permissions.');
+      console.error(err);
+    }
   };
 
   // Handle video file upload
@@ -386,7 +420,7 @@ export default function AIDetection() {
       return;
     }
 
-    if (videoSource === 'file' && !videoRef.current) {
+    if ((videoSource === 'webcam' || videoSource === 'file') && !videoRef.current) {
       setError('Video not ready. Please wait.');
       return;
     }
@@ -482,7 +516,7 @@ export default function AIDetection() {
         </div>
 
         {/* Controls */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
           <button
             onClick={loadDemoImage}
             disabled={!isModelReady || isDetecting}
@@ -490,6 +524,26 @@ export default function AIDetection() {
           >
             <ImageIcon size={20} />
             <span>Load Demo</span>
+          </button>
+
+          <button
+            onClick={loadYouTubeVideo}
+            disabled={!isModelReady || isDetecting}
+            className="p-4 bg-rose-500/15 hover:bg-rose-500/25 disabled:bg-[#111b36] disabled:text-slate-600 disabled:cursor-not-allowed rounded-lg transition-all flex items-center justify-center gap-2 border border-rose-500/30 text-rose-400"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+            <span>YouTube Demo</span>
+          </button>
+
+          <button
+            onClick={startWebcam}
+            disabled={!isModelReady || isDetecting}
+            className="p-4 bg-sky-500/15 hover:bg-sky-500/25 disabled:bg-[#111b36] disabled:text-slate-600 disabled:cursor-not-allowed rounded-lg transition-all flex items-center justify-center gap-2 border border-sky-500/30 text-sky-400"
+          >
+            <Camera size={20} />
+            <span>Use Webcam</span>
           </button>
 
           <button
@@ -510,7 +564,7 @@ export default function AIDetection() {
 
           <button
             onClick={isDetecting ? stopDetection : startDetection}
-            disabled={!isModelReady || videoSource === 'none'}
+            disabled={!isModelReady || videoSource === 'none' || videoSource === 'youtube'}
             className={`p-4 rounded-lg transition-all flex items-center justify-center gap-2 border ${
               isDetecting
                 ? 'bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/30 text-rose-400'
@@ -524,27 +578,49 @@ export default function AIDetection() {
 
         {/* Video Display */}
         <div className="mb-6 relative bg-[#0a0f1f] rounded-lg overflow-hidden border border-[#1c2a4f]">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`w-full h-auto ${videoSource === 'demo' ? 'hidden' : ''}`}
-            onPlay={() => {
-              if (videoSource === 'file' && videoRef.current) {
-                videoRef.current.loop = true;
-              }
-            }}
-          />
-          <canvas
-            ref={canvasRef}
-            className={`${videoSource === 'demo' ? 'w-full h-auto' : 'absolute top-0 left-0 w-full h-full'}`}
-          />
+          {/* YouTube Video */}
+          {videoSource === 'youtube' && (
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                className="absolute top-0 left-0 w-full h-full"
+                src="https://www.youtube.com/embed/lPDU-xx8S_8?autoplay=0&rel=0"
+                title="YouTube Demo Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
+
+          {/* Regular Video Element */}
+          {videoSource !== 'youtube' && (
+            <>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-auto ${videoSource === 'demo' ? 'hidden' : ''}`}
+                onPlay={() => {
+                  if (videoSource === 'file' && videoRef.current) {
+                    videoRef.current.loop = true;
+                  }
+                }}
+              />
+              <canvas
+                ref={canvasRef}
+                className={`${videoSource === 'demo' ? 'w-full h-auto' : 'absolute top-0 left-0 w-full h-full'}`}
+              />
+            </>
+          )}
 
           {/* Video Source Indicator */}
           {videoSource !== 'none' && (
             <div className="absolute top-4 left-4 bg-[#0d1429]/90 backdrop-blur-sm px-3 py-1 rounded text-sm z-10 border border-[#1c2a4f]">
-              {videoSource === 'demo' ? '🖼️ DEMO IMAGE' : `🎬 ${videoFileName}`}
+              {videoSource === 'webcam' ? '📹 LIVE WEBCAM' : 
+               videoSource === 'demo' ? '🖼️ DEMO IMAGE' : 
+               videoSource === 'youtube' ? '📺 YOUTUBE VIDEO' :
+               `🎬 ${videoFileName}`}
             </div>
           )}
 
@@ -554,15 +630,102 @@ export default function AIDetection() {
               <div className="text-center">
                 <Camera size={64} className="mx-auto mb-4 opacity-30" />
                 <p className="text-lg text-slate-400">Select a video source to begin</p>
-                <p className="text-sm mt-2 text-slate-500">Upload a video or load demo image</p>
+                <p className="text-sm mt-2 text-slate-500">Upload a video, use webcam, load demo, or watch YouTube</p>
                 <p className="text-xs mt-2 text-amber-400">💡 AI will detect people with green boxes and yellow center dots!</p>
               </div>
             </div>
           )}
         </div>
 
+        {/* YouTube Manual Counting */}
+        {videoSource === 'youtube' && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-rose-500/10 to-rose-600/10 rounded-lg border border-rose-500/30">
+            <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-white">
+              <Users size={24} className="text-rose-400" />
+              <span>YOUTUBE VIDEO - MANUAL COUNTING</span>
+              {isYoutubeCounting && (
+                <span className="ml-2 px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded text-xs text-emerald-400 animate-pulse">
+                  ● COUNTING
+                </span>
+              )}
+            </h3>
+            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded">
+              <p className="text-xs text-amber-400">
+                ⚠️ <strong>Why manual counting?</strong> YouTube videos are embedded in a secure iframe that prevents direct frame access for AI processing. 
+                For automatic AI detection, please upload a video file using the "Upload Video" button above.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="p-4 bg-[#0d1429]/50 rounded-lg border border-emerald-500/30">
+                <div className="text-slate-500 text-sm mb-1">Total Entries</div>
+                <div className="text-4xl font-bold text-emerald-400">
+                  {youtubeEntries}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">people entered</div>
+              </div>
+
+              <div className="p-4 bg-[#0d1429]/50 rounded-lg border border-rose-500/30">
+                <div className="text-slate-500 text-sm mb-1">Total Exits</div>
+                <div className="text-4xl font-bold text-rose-400">
+                  {youtubeExits}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">people exited</div>
+              </div>
+
+              <div className="p-4 bg-[#0d1429]/50 rounded-lg border border-sky-500/30">
+                <div className="text-slate-500 text-sm mb-1">Current Inside</div>
+                <div className="text-4xl font-bold text-sky-400">
+                  {youtubeEntries - youtubeExits}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">people now</div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setIsYoutubeCounting(!isYoutubeCounting)}
+                className={`flex-1 p-3 rounded-lg transition-all flex items-center justify-center gap-2 border ${
+                  isYoutubeCounting
+                    ? 'bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/30 text-rose-400'
+                    : 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-400'
+                }`}
+              >
+                {isYoutubeCounting ? <Pause size={20} /> : <Play size={20} />}
+                <span>{isYoutubeCounting ? 'Stop Counting' : 'Start Counting'}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setYoutubeEntries(0);
+                  setYoutubeExits(0);
+                }}
+                className="px-4 py-3 bg-[#162042] hover:bg-[#1c2a4f] border border-[#1c2a4f] rounded-lg transition-colors text-slate-300"
+              >
+                🔄 Reset
+              </button>
+            </div>
+
+            {isYoutubeCounting && (
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setYoutubeEntries(prev => prev + 1)}
+                  className="p-4 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 rounded-lg transition-all font-semibold text-lg text-emerald-400"
+                >
+                  + Entry (Person Entered)
+                </button>
+                <button
+                  onClick={() => setYoutubeExits(prev => prev + 1)}
+                  className="p-4 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 rounded-lg transition-all font-semibold text-lg text-rose-400"
+                >
+                  - Exit (Person Exited)
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* LIVE ENTRY COUNTING DASHBOARD */}
-        {videoSource !== 'none' && (
+        {videoSource !== 'none' && videoSource !== 'youtube' && (
           <div className="mb-6 p-4 bg-gradient-to-r from-[#111b36] to-[#0d1429] rounded-lg border border-amber-500/30">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-amber-400">
               <Users size={24} />
@@ -622,7 +785,7 @@ export default function AIDetection() {
         )}
 
         {/* Statistics */}
-        {videoSource !== 'none' && (
+        {videoSource !== 'none' && videoSource !== 'youtube' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="p-4 bg-[#111b36] rounded-lg border border-[#1c2a4f]">
               <div className="text-slate-500 text-sm mb-1">Processing Speed</div>
