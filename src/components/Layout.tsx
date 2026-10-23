@@ -57,16 +57,18 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-900 text-slate-100 overflow-hidden">
+    <div className="flex h-screen bg-[#070b1a] text-slate-100 overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-slate-800 border-r border-slate-700 flex flex-col`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-[#0d1429] border-r border-[#1c2a4f] flex flex-col`}>
         {/* Logo */}
-        <div className="p-4 border-b border-slate-700 flex items-center gap-3">
-          <Shield className="w-8 h-8 text-cyan-400 flex-shrink-0" />
+        <div className="p-4 border-b border-[#1c2a4f] flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/20">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
           {sidebarOpen && (
             <div>
-              <h1 className="font-bold text-sm text-cyan-400">CrowdShield AI</h1>
-              <p className="text-[10px] text-slate-400">Crowd Safety Platform</p>
+              <h1 className="font-bold text-sm text-amber-400 tracking-wide">CrowdShield AI</h1>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Operations Center</p>
             </div>
           )}
         </div>
@@ -80,13 +82,13 @@ export default function Layout() {
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${
                   isActive 
-                    ? 'bg-cyan-500/10 text-cyan-400 border-r-2 border-cyan-400' 
-                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                    ? 'bg-gradient-to-r from-amber-500/15 to-transparent text-amber-400 border-r-2 border-amber-400' 
+                    : 'text-slate-400 hover:bg-[#162042] hover:text-slate-200'
                 }`}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-amber-400' : ''}`} />
                 {sidebarOpen && <span className="truncate">{item.label}</span>}
               </button>
             );
@@ -95,14 +97,14 @@ export default function Layout() {
 
         {/* User info */}
         {sidebarOpen && store.currentUser && (
-          <div className="p-3 border-t border-slate-700">
+          <div className="p-3 border-t border-[#1c2a4f]">
             <div className="flex items-center gap-2 text-xs">
-              <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-violet-500/20">
                 {store.currentUser.displayName[0]}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="truncate font-medium">{store.currentUser.displayName}</p>
-                <p className="text-slate-400 capitalize">{store.currentUser.role.replace('_', ' ')}</p>
+                <p className="truncate font-medium text-slate-200">{store.currentUser.displayName}</p>
+                <p className="text-slate-500 capitalize text-[10px] uppercase tracking-wider">{store.currentUser.role.replace('_', ' ')}</p>
               </div>
             </div>
           </div>
@@ -112,41 +114,41 @@ export default function Layout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-14 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-4 flex-shrink-0">
+        <header className="h-14 bg-[#0d1429] border-b border-[#1c2a4f] flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded hover:bg-slate-700">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded hover:bg-[#162042] text-slate-400 hover:text-slate-200 transition-colors">
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50"></div>
               <span className="text-xs text-slate-400">
-                {store.event.name} • {store.event.status.toUpperCase()}
+                {store.event.name} • <span className="text-emerald-400 font-medium">{store.event.status.toUpperCase()}</span>
               </span>
             </div>
-            <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded">
-              SIMULATION DATA
+            <span className="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded border border-amber-500/20 font-medium">
+              SIMULATION
             </span>
           </div>
 
           <div className="flex items-center gap-3">
             {/* Simulation controls */}
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-400">Speed:</span>
+              <span className="text-slate-500">Speed:</span>
               <button 
                 onClick={() => setStore(prev => ({ ...prev, simulation: { ...prev.simulation, speed: Math.max(0.5, prev.simulation.speed - 0.5) } }))}
-                className="px-2 py-0.5 bg-slate-700 rounded hover:bg-slate-600"
+                className="px-2 py-0.5 bg-[#162042] rounded hover:bg-[#1c2a4f] text-slate-300 transition-colors"
               >-</button>
-              <span className="w-8 text-center">{store.simulation.speed}x</span>
+              <span className="w-8 text-center text-amber-400 font-medium">{store.simulation.speed}x</span>
               <button 
                 onClick={() => setStore(prev => ({ ...prev, simulation: { ...prev.simulation, speed: Math.min(5, prev.simulation.speed + 0.5) } }))}
-                className="px-2 py-0.5 bg-slate-700 rounded hover:bg-slate-600"
+                className="px-2 py-0.5 bg-[#162042] rounded hover:bg-[#1c2a4f] text-slate-300 transition-colors"
               >+</button>
               <button
                 onClick={() => setStore(prev => ({ ...prev, simulation: { ...prev.simulation, running: !prev.simulation.running } }))}
-                className={`px-3 py-1 rounded text-xs font-medium ${
+                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
                   store.simulation.running 
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                    : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                    ? 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30' 
+                    : 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
                 }`}
               >
                 {store.simulation.running ? '⏸ Pause' : '▶ Start'}
@@ -157,39 +159,39 @@ export default function Layout() {
             <div className="relative">
               <button 
                 onClick={() => setShowNotif(!showNotif)}
-                className="relative p-2 rounded hover:bg-slate-700"
+                className="relative p-2 rounded hover:bg-[#162042] transition-colors"
               >
-                <Bell className="w-5 h-5 text-slate-300" />
+                <Bell className="w-5 h-5 text-slate-400" />
                 {unreadAlerts > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center">
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 rounded-full text-[10px] flex items-center justify-center text-white font-bold shadow-lg shadow-rose-500/50">
                     {unreadAlerts}
                   </span>
                 )}
               </button>
               {showNotif && (
-                <div className="absolute right-0 top-full mt-2 w-80 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
-                  <div className="p-3 border-b border-slate-700 font-medium text-sm">Active Alerts</div>
+                <div className="absolute right-0 top-full mt-2 w-80 bg-[#0d1429] border border-[#1c2a4f] rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto">
+                  <div className="p-3 border-b border-[#1c2a4f] font-medium text-sm text-amber-400">Active Alerts</div>
                   {store.alerts.filter(a => a.status === 'active').slice(0, 5).map(alert => (
-                    <div key={alert.id} className="p-3 border-b border-slate-700/50 hover:bg-slate-700/30 cursor-pointer" onClick={() => { onNavigate('alerts'); setShowNotif(false); }}>
+                    <div key={alert.id} className="p-3 border-b border-[#1c2a4f]/50 hover:bg-[#162042] cursor-pointer transition-colors" onClick={() => { onNavigate('alerts'); setShowNotif(false); }}>
                       <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${alert.severity === 'critical' ? 'bg-red-500' : 'bg-amber-500'}`}></span>
-                        <span className="text-xs font-medium truncate">{alert.title}</span>
+                        <span className={`w-2 h-2 rounded-full ${alert.severity === 'critical' ? 'bg-rose-500' : 'bg-amber-500'}`}></span>
+                        <span className="text-xs font-medium truncate text-slate-200">{alert.title}</span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1 truncate">{alert.description}</p>
+                      <p className="text-xs text-slate-500 mt-1 truncate">{alert.description}</p>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <button onClick={handleLogout} className="p-2 rounded hover:bg-slate-700 text-slate-400 hover:text-white" title="Logout">
+            <button onClick={handleLogout} className="p-2 rounded hover:bg-[#162042] text-slate-500 hover:text-rose-400 transition-colors" title="Logout">
               <LogOut className="w-5 h-5" />
             </button>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4">
+        <main className="flex-1 overflow-y-auto p-4 bg-[#070b1a]">
           <Outlet />
         </main>
       </div>

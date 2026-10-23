@@ -49,10 +49,10 @@ export default function Dashboard() {
 
   const getRiskColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'text-red-400 bg-red-500/10 border-red-500/30';
+      case 'critical': return 'text-rose-400 bg-rose-500/10 border-rose-500/30';
       case 'high': return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
       case 'moderate': return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
-      default: return 'text-green-400 bg-green-500/10 border-green-500/30';
+      default: return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
     }
   };
 
@@ -61,16 +61,16 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Command Centre</h1>
+          <h1 className="text-2xl font-bold text-white">Command Centre</h1>
           <p className="text-sm text-slate-400">
             {store.event.name} • {store.event.startDate} to {store.event.endDate}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs text-amber-400">
+          <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs text-amber-400 font-medium">
             📊 SIMULATION DATA
           </span>
-          <span className="px-3 py-1 bg-slate-700 rounded-full text-xs text-slate-300">
+          <span className="px-3 py-1 bg-[#111b36] border border-[#1c2a4f] rounded-full text-xs text-slate-300">
             {new Date().toLocaleTimeString()}
           </span>
         </div>
@@ -89,38 +89,38 @@ export default function Dashboard() {
       {/* Charts Row */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Crowd Trend */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+        <div className="bg-[#111b36] rounded-xl border border-[#1c2a4f] p-4">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-cyan-400" />
-            Crowd Density Trend (Selected Zones)
+            <TrendingUp className="w-4 h-4 text-amber-400" />
+            <span className="text-slate-200">Crowd Density Trend (Selected Zones)</span>
           </h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={crowdTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="time" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
-              <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1c2a4f" />
+              <XAxis dataKey="time" tick={{ fontSize: 10, fill: '#64748b' }} />
+              <YAxis tick={{ fontSize: 10, fill: '#64748b' }} />
+              <Tooltip contentStyle={{ background: '#0d1429', border: '1px solid #1c2a4f', borderRadius: 8, fontSize: 12, color: '#e2e8f0' }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="Main Temple Area" stroke="#ef4444" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="River Ghats" stroke="#f97316" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="Main Temple Area" stroke="#f43f5e" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="River Ghats" stroke="#f59e0b" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="Food Court Zone" stroke="#eab308" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="Stage & Performance Area" stroke="#a855f7" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="Stage & Performance Area" stroke="#a78bfa" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
         {/* Traffic Congestion */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+        <div className="bg-[#111b36] rounded-xl border border-[#1c2a4f] p-4">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-cyan-400" />
-            Road Congestion Levels
+            <Activity className="w-4 h-4 text-emerald-400" />
+            <span className="text-slate-200">Road Congestion Levels</span>
           </h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={trafficData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: '#94a3b8' }} width={100} />
-              <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1c2a4f" />
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b' }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: '#64748b' }} width={100} />
+              <Tooltip contentStyle={{ background: '#0d1429', border: '1px solid #1c2a4f', borderRadius: 8, fontSize: 12, color: '#e2e8f0' }} />
               <Bar dataKey="congestion" fill="#06b6d4" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -130,36 +130,36 @@ export default function Dashboard() {
       {/* Gate Flow + Zone Risk */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Gate Inflow/Outflow */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
-          <h3 className="text-sm font-semibold mb-3">Gate Flow (people/hour)</h3>
+        <div className="bg-[#111b36] rounded-xl border border-[#1c2a4f] p-4">
+          <h3 className="text-sm font-semibold mb-3 text-slate-200">Gate Flow (people/hour)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={gateData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#94a3b8' }} />
-              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
-              <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1c2a4f" />
+              <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#64748b' }} />
+              <YAxis tick={{ fontSize: 10, fill: '#64748b' }} />
+              <Tooltip contentStyle={{ background: '#0d1429', border: '1px solid #1c2a4f', borderRadius: 8, fontSize: 12, color: '#e2e8f0' }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="inflow" fill="#22c55e" name="Inflow" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="inflow" fill="#10b981" name="Inflow" radius={[4, 4, 0, 0]} />
               <Bar dataKey="outflow" fill="#3b82f6" name="Outflow" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Zone Risk Summary */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+        <div className="bg-[#111b36] rounded-xl border border-[#1c2a4f] p-4">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Shield className="w-4 h-4 text-cyan-400" />
-            Zone Risk Overview
+            <Shield className="w-4 h-4 text-amber-400" />
+            <span className="text-slate-200">Zone Risk Overview</span>
           </h3>
           <div className="space-y-2 max-h-[200px] overflow-y-auto">
             {zoneRisks.sort((a, b) => b.risk.score - a.risk.score).map(({ zone, risk }) => (
-              <div key={zone.id} className="flex items-center gap-3 p-2 rounded-lg bg-slate-700/30">
+              <div key={zone.id} className="flex items-center gap-3 p-2 rounded-lg bg-[#0d1429]/50">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm border ${getRiskColor(risk.severity)}`}>
                   {risk.score}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{zone.name}</p>
-                  <p className="text-xs text-slate-400 capitalize">{risk.severity} • {risk.trend.replace('_', ' ')}</p>
+                  <p className="text-sm font-medium truncate text-slate-200">{zone.name}</p>
+                  <p className="text-xs text-slate-500 capitalize">{risk.severity} • {risk.trend.replace('_', ' ')}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-slate-400">
@@ -173,29 +173,29 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Alerts */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
-        <h3 className="text-sm font-semibold mb-3">Recent Alerts</h3>
+      <div className="bg-[#111b36] rounded-xl border border-[#1c2a4f] p-4">
+        <h3 className="text-sm font-semibold mb-3 text-slate-200">Recent Alerts</h3>
         <div className="space-y-2">
           {store.alerts.slice(0, 5).map(alert => (
-            <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-700/30 border border-slate-700">
+            <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg bg-[#0d1429]/50 border border-[#1c2a4f]">
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                alert.severity === 'critical' ? 'bg-red-500' : alert.severity === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
+                alert.severity === 'critical' ? 'bg-rose-500' : alert.severity === 'warning' ? 'bg-amber-500' : 'bg-sky-500'
               }`}></span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{alert.title}</p>
-                <p className="text-xs text-slate-400 truncate">{alert.description}</p>
+                <p className="text-sm font-medium truncate text-slate-200">{alert.title}</p>
+                <p className="text-xs text-slate-500 truncate">{alert.description}</p>
               </div>
               <span className={`text-xs px-2 py-0.5 rounded capitalize ${
-                alert.status === 'active' ? 'bg-red-500/20 text-red-400' :
-                alert.status === 'acknowledged' ? 'bg-amber-500/20 text-amber-400' :
-                'bg-green-500/20 text-green-400'
+                alert.status === 'active' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30' :
+                alert.status === 'acknowledged' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
+                'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
               }`}>
                 {alert.status}
               </span>
               <span className="text-xs text-slate-500 flex-shrink-0">
                 {new Date(alert.timestamp).toLocaleTimeString()}
               </span>
-              <span className="text-xs px-1.5 py-0.5 bg-slate-600 rounded flex-shrink-0">
+              <span className="text-xs px-1.5 py-0.5 bg-[#162042] border border-[#1c2a4f] rounded flex-shrink-0 text-slate-400">
                 {alert.dataSource}
               </span>
             </div>
@@ -204,26 +204,26 @@ export default function Dashboard() {
       </div>
 
       {/* Emergency Route Status */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+      <div className="bg-[#111b36] rounded-xl border border-[#1c2a4f] p-4">
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <Siren className="w-4 h-4 text-red-400" />
-          Emergency Access Status
+          <Siren className="w-4 h-4 text-rose-400" />
+          <span className="text-slate-200">Emergency Access Status</span>
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-            <p className="text-xs text-green-400">Emergency Corridor</p>
-            <p className="text-lg font-bold text-green-400">OPEN</p>
-            <p className="text-xs text-slate-400">15% utilization</p>
+          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+            <p className="text-xs text-emerald-400">Emergency Corridor</p>
+            <p className="text-lg font-bold text-emerald-400">OPEN</p>
+            <p className="text-xs text-slate-500">15% utilization</p>
           </div>
-          <div className="p-3 rounded-lg bg-slate-700/50 border border-slate-600">
-            <p className="text-xs text-slate-400">Active Emergency Vehicles</p>
-            <p className="text-lg font-bold">{store.emergencyVehicles.filter(v => v.status === 'en_route').length}</p>
-            <p className="text-xs text-slate-400">simulated</p>
+          <div className="p-3 rounded-lg bg-[#0d1429]/50 border border-[#1c2a4f]">
+            <p className="text-xs text-slate-500">Active Emergency Vehicles</p>
+            <p className="text-lg font-bold text-slate-200">{store.emergencyVehicles.filter(v => v.status === 'en_route').length}</p>
+            <p className="text-xs text-slate-500">simulated</p>
           </div>
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-            <p className="text-xs text-red-400">Blocked Routes</p>
-            <p className="text-lg font-bold text-red-400">{blockedRoads.length}</p>
-            <p className="text-xs text-slate-400">{blockedRoads.map(r => r.name).join(', ')}</p>
+          <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30">
+            <p className="text-xs text-rose-400">Blocked Routes</p>
+            <p className="text-lg font-bold text-rose-400">{blockedRoads.length}</p>
+            <p className="text-xs text-slate-500">{blockedRoads.map(r => r.name).join(', ')}</p>
           </div>
         </div>
       </div>
@@ -233,22 +233,22 @@ export default function Dashboard() {
 
 function KPICard({ icon: Icon, label, value, sublabel, color }: { icon: any; label: string; value: string; sublabel: string; color: string }) {
   const colorClasses: Record<string, string> = {
-    cyan: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+    cyan: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
     blue: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
     orange: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
-    red: 'text-red-400 bg-red-500/10 border-red-500/30',
+    red: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
     amber: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-    green: 'text-green-400 bg-green-500/10 border-green-500/30',
+    green: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
   };
 
   return (
-    <div className={`p-3 rounded-xl border ${colorClasses[color]}`}>
+    <div className={`p-3 rounded-xl border ${colorClasses[color]} bg-[#111b36]`}>
       <div className="flex items-center gap-2 mb-1">
         <Icon className="w-4 h-4" />
-        <span className="text-xs opacity-80">{label}</span>
+        <span className="text-xs opacity-80 text-slate-300">{label}</span>
       </div>
-      <p className="text-xl font-bold">{value}</p>
-      <p className="text-xs opacity-60">{sublabel}</p>
+      <p className="text-xl font-bold text-white">{value}</p>
+      <p className="text-xs opacity-60 text-slate-500">{sublabel}</p>
     </div>
   );
 }

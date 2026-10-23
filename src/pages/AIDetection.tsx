@@ -471,44 +471,44 @@ export default function AIDetection() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className="min-h-screen bg-[#070b1a] text-white p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">AI Person Entry Counter</h1>
-          <p className="text-gray-400">
+          <h1 className="text-3xl font-bold mb-2 text-white">AI Person Entry Counter</h1>
+          <p className="text-slate-400">
             Real-time person detection and entry counting using MediaPipe AI
           </p>
         </div>
 
         {/* Model Status */}
-        <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
+        <div className="mb-6 p-4 bg-[#111b36] rounded-lg border border-[#1c2a4f]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {isModelLoading && (
                 <>
-                  <Loader className="animate-spin text-blue-400" size={24} />
-                  <span className="text-blue-400">Loading AI Model...</span>
+                  <Loader className="animate-spin text-violet-400" size={24} />
+                  <span className="text-violet-400">Loading AI Model...</span>
                 </>
               )}
               {isModelReady && !isModelLoading && (
                 <>
-                  <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
+                  <div className="h-6 w-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
                     <span className="text-xs">✓</span>
                   </div>
-                  <span className="text-green-400">MediaPipe AI Model Ready</span>
+                  <span className="text-emerald-400">MediaPipe AI Model Ready</span>
                 </>
               )}
               {error && (
                 <>
-                  <AlertTriangle className="text-red-500" size={24} />
-                  <span className="text-red-400">{error}</span>
+                  <AlertTriangle className="text-rose-500" size={24} />
+                  <span className="text-rose-400">{error}</span>
                 </>
               )}
             </div>
             {isDetecting && (
-              <div className="flex items-center gap-2 text-green-400">
-                <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
+              <div className="flex items-center gap-2 text-emerald-400">
+                <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50"></div>
                 <span className="font-semibold">AI DETECTION ACTIVE</span>
               </div>
             )}
@@ -520,7 +520,7 @@ export default function AIDetection() {
           <button
             onClick={loadDemoImage}
             disabled={!isModelReady || isDetecting}
-            className="p-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="p-4 bg-orange-500/15 hover:bg-orange-500/25 disabled:bg-[#111b36] disabled:text-slate-600 disabled:cursor-not-allowed rounded-lg transition-all flex items-center justify-center gap-2 border border-orange-500/30 text-orange-400"
           >
             <ImageIcon size={20} />
             <span>Load Demo</span>
@@ -529,7 +529,7 @@ export default function AIDetection() {
           <button
             onClick={loadYouTubeVideo}
             disabled={!isModelReady || isDetecting}
-            className="p-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="p-4 bg-rose-500/15 hover:bg-rose-500/25 disabled:bg-[#111b36] disabled:text-slate-600 disabled:cursor-not-allowed rounded-lg transition-all flex items-center justify-center gap-2 border border-rose-500/30 text-rose-400"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -540,7 +540,7 @@ export default function AIDetection() {
           <button
             onClick={startWebcam}
             disabled={!isModelReady || isDetecting}
-            className="p-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="p-4 bg-sky-500/15 hover:bg-sky-500/25 disabled:bg-[#111b36] disabled:text-slate-600 disabled:cursor-not-allowed rounded-lg transition-all flex items-center justify-center gap-2 border border-sky-500/30 text-sky-400"
           >
             <Camera size={20} />
             <span>Use Webcam</span>
@@ -549,7 +549,7 @@ export default function AIDetection() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={!isModelReady || isDetecting}
-            className="p-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="p-4 bg-violet-500/15 hover:bg-violet-500/25 disabled:bg-[#111b36] disabled:text-slate-600 disabled:cursor-not-allowed rounded-lg transition-all flex items-center justify-center gap-2 border border-violet-500/30 text-violet-400"
           >
             <Upload size={20} />
             <span>Upload Video</span>
@@ -565,11 +565,11 @@ export default function AIDetection() {
           <button
             onClick={isDetecting ? stopDetection : startDetection}
             disabled={!isModelReady || videoSource === 'none' || videoSource === 'youtube'}
-            className={`p-4 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+            className={`p-4 rounded-lg transition-all flex items-center justify-center gap-2 border ${
               isDetecting
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-green-600 hover:bg-green-700'
-            } disabled:bg-gray-700 disabled:cursor-not-allowed`}
+                ? 'bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/30 text-rose-400'
+                : 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-400'
+            } disabled:bg-[#111b36] disabled:border-[#1c2a4f] disabled:text-slate-600 disabled:cursor-not-allowed`}
           >
             {isDetecting ? <Pause size={20} /> : <Play size={20} />}
             <span>{isDetecting ? 'Stop Detection' : 'Start Detection'}</span>
@@ -577,7 +577,7 @@ export default function AIDetection() {
         </div>
 
         {/* Video Display */}
-        <div className="mb-6 relative bg-black rounded-lg overflow-hidden border border-gray-700">
+        <div className="mb-6 relative bg-[#0a0f1f] rounded-lg overflow-hidden border border-[#1c2a4f]">
           {/* YouTube Video */}
           {videoSource === 'youtube' && (
             <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
@@ -616,7 +616,7 @@ export default function AIDetection() {
 
           {/* Video Source Indicator */}
           {videoSource !== 'none' && (
-            <div className="absolute top-4 left-4 bg-black bg-opacity-70 px-3 py-1 rounded text-sm z-10">
+            <div className="absolute top-4 left-4 bg-[#0d1429]/90 backdrop-blur-sm px-3 py-1 rounded text-sm z-10 border border-[#1c2a4f]">
               {videoSource === 'webcam' ? '📹 LIVE WEBCAM' : 
                videoSource === 'demo' ? '🖼️ DEMO IMAGE' : 
                videoSource === 'youtube' ? '📺 YOUTUBE VIDEO' :
@@ -626,12 +626,12 @@ export default function AIDetection() {
 
           {/* Placeholder */}
           {videoSource === 'none' && (
-            <div className="w-full h-96 flex items-center justify-center text-gray-500">
+            <div className="w-full h-96 flex items-center justify-center text-slate-500">
               <div className="text-center">
-                <Camera size={64} className="mx-auto mb-4 opacity-50" />
-                <p className="text-lg">Select a video source to begin</p>
-                <p className="text-sm mt-2">Upload a video, use webcam, load demo, or watch YouTube</p>
-                <p className="text-xs mt-2 text-yellow-500">💡 AI will detect people with green boxes and yellow center dots!</p>
+                <Camera size={64} className="mx-auto mb-4 opacity-30" />
+                <p className="text-lg text-slate-400">Select a video source to begin</p>
+                <p className="text-sm mt-2 text-slate-500">Upload a video, use webcam, load demo, or watch YouTube</p>
+                <p className="text-xs mt-2 text-amber-400">💡 AI will detect people with green boxes and yellow center dots!</p>
               </div>
             </div>
           )}
@@ -639,56 +639,56 @@ export default function AIDetection() {
 
         {/* YouTube Manual Counting */}
         {videoSource === 'youtube' && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-red-900 to-red-800 rounded-lg border-2 border-red-500">
+          <div className="mb-6 p-4 bg-gradient-to-r from-rose-500/10 to-rose-600/10 rounded-lg border border-rose-500/30">
             <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-white">
-              <Users size={24} />
-              YOUTUBE VIDEO - MANUAL COUNTING
+              <Users size={24} className="text-rose-400" />
+              <span>YOUTUBE VIDEO - MANUAL COUNTING</span>
               {isYoutubeCounting && (
-                <span className="ml-2 px-2 py-1 bg-green-600 rounded text-xs animate-pulse">
+                <span className="ml-2 px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded text-xs text-emerald-400 animate-pulse">
                   ● COUNTING
                 </span>
               )}
             </h3>
-            <div className="mb-4 p-3 bg-yellow-900 bg-opacity-30 border border-yellow-700 rounded">
-              <p className="text-xs text-yellow-300">
+            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded">
+              <p className="text-xs text-amber-400">
                 ⚠️ <strong>Why manual counting?</strong> YouTube videos are embedded in a secure iframe that prevents direct frame access for AI processing. 
                 For automatic AI detection, please upload a video file using the "Upload Video" button above.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="p-4 bg-gray-900 rounded-lg border-2 border-green-500">
-                <div className="text-gray-400 text-sm mb-1">Total Entries</div>
-                <div className="text-4xl font-bold text-green-400">
+              <div className="p-4 bg-[#0d1429]/50 rounded-lg border border-emerald-500/30">
+                <div className="text-slate-500 text-sm mb-1">Total Entries</div>
+                <div className="text-4xl font-bold text-emerald-400">
                   {youtubeEntries}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">people entered</div>
+                <div className="text-xs text-slate-500 mt-1">people entered</div>
               </div>
 
-              <div className="p-4 bg-gray-900 rounded-lg border-2 border-red-500">
-                <div className="text-gray-400 text-sm mb-1">Total Exits</div>
-                <div className="text-4xl font-bold text-red-400">
+              <div className="p-4 bg-[#0d1429]/50 rounded-lg border border-rose-500/30">
+                <div className="text-slate-500 text-sm mb-1">Total Exits</div>
+                <div className="text-4xl font-bold text-rose-400">
                   {youtubeExits}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">people exited</div>
+                <div className="text-xs text-slate-500 mt-1">people exited</div>
               </div>
 
-              <div className="p-4 bg-gray-900 rounded-lg border-2 border-blue-500">
-                <div className="text-gray-400 text-sm mb-1">Current Inside</div>
-                <div className="text-4xl font-bold text-blue-400">
+              <div className="p-4 bg-[#0d1429]/50 rounded-lg border border-sky-500/30">
+                <div className="text-slate-500 text-sm mb-1">Current Inside</div>
+                <div className="text-4xl font-bold text-sky-400">
                   {youtubeEntries - youtubeExits}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">people now</div>
+                <div className="text-xs text-slate-500 mt-1">people now</div>
               </div>
             </div>
 
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setIsYoutubeCounting(!isYoutubeCounting)}
-                className={`flex-1 p-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                className={`flex-1 p-3 rounded-lg transition-all flex items-center justify-center gap-2 border ${
                   isYoutubeCounting
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-green-600 hover:bg-green-700'
+                    ? 'bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/30 text-rose-400'
+                    : 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-400'
                 }`}
               >
                 {isYoutubeCounting ? <Pause size={20} /> : <Play size={20} />}
@@ -699,7 +699,7 @@ export default function AIDetection() {
                   setYoutubeEntries(0);
                   setYoutubeExits(0);
                 }}
-                className="px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                className="px-4 py-3 bg-[#162042] hover:bg-[#1c2a4f] border border-[#1c2a4f] rounded-lg transition-colors text-slate-300"
               >
                 🔄 Reset
               </button>
@@ -709,13 +709,13 @@ export default function AIDetection() {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => setYoutubeEntries(prev => prev + 1)}
-                  className="p-4 bg-green-600 hover:bg-green-700 rounded-lg transition-colors font-semibold text-lg"
+                  className="p-4 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 rounded-lg transition-all font-semibold text-lg text-emerald-400"
                 >
                   + Entry (Person Entered)
                 </button>
                 <button
                   onClick={() => setYoutubeExits(prev => prev + 1)}
-                  className="p-4 bg-red-600 hover:bg-red-700 rounded-lg transition-colors font-semibold text-lg"
+                  className="p-4 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 rounded-lg transition-all font-semibold text-lg text-rose-400"
                 >
                   - Exit (Person Exited)
                 </button>
@@ -726,54 +726,54 @@ export default function AIDetection() {
 
         {/* LIVE ENTRY COUNTING DASHBOARD */}
         {videoSource !== 'none' && videoSource !== 'youtube' && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg border-2 border-cyan-500">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-cyan-400">
+          <div className="mb-6 p-4 bg-gradient-to-r from-[#111b36] to-[#0d1429] rounded-lg border border-amber-500/30">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-amber-400">
               <Users size={24} />
               REAL AI PEOPLE COUNTING
               {isDetecting && (
-                <span className="ml-2 px-2 py-1 bg-green-600 rounded text-xs animate-pulse">
+                <span className="ml-2 px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded text-xs text-emerald-400 animate-pulse">
                   ● LIVE
                 </span>
               )}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-gray-900 rounded-lg border-2 border-green-500">
-                <div className="text-gray-400 text-sm mb-1">👥 Current People</div>
-                <div className="text-5xl font-bold text-green-400">
+              <div className="p-4 bg-[#0d1429]/50 rounded-lg border border-emerald-500/30">
+                <div className="text-slate-500 text-sm mb-1">👥 Current People</div>
+                <div className="text-5xl font-bold text-emerald-400">
                   {currentInFrame}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">people in frame now</div>
+                <div className="text-xs text-slate-500 mt-1">people in frame now</div>
               </div>
 
-              <div className="p-4 bg-gray-900 rounded-lg border-2 border-yellow-500">
-                <div className="text-gray-400 text-sm mb-1">📊 Total Tracks Created</div>
-                <div className="text-5xl font-bold text-yellow-400">
+              <div className="p-4 bg-[#0d1429]/50 rounded-lg border border-amber-500/30">
+                <div className="text-slate-500 text-sm mb-1">📊 Total Tracks Created</div>
+                <div className="text-5xl font-bold text-amber-400">
                   {entries}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">tracking IDs assigned</div>
+                <div className="text-xs text-slate-500 mt-1">tracking IDs assigned</div>
               </div>
 
-              <div className="p-4 bg-gray-900 rounded-lg border-2 border-blue-500">
-                <div className="text-gray-400 text-sm mb-1">🔝 Peak Count</div>
-                <div className="text-5xl font-bold text-blue-400">
+              <div className="p-4 bg-[#0d1429]/50 rounded-lg border border-sky-500/30">
+                <div className="text-slate-500 text-sm mb-1">🔝 Peak Count</div>
+                <div className="text-5xl font-bold text-sky-400">
                   {peakCount}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">maximum at once</div>
+                <div className="text-xs text-slate-500 mt-1">maximum at once</div>
               </div>
             </div>
 
             <div className="mt-4 flex gap-2">
               <button
                 onClick={resetCounters}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
+                className="px-4 py-2 bg-[#162042] hover:bg-[#1c2a4f] border border-[#1c2a4f] rounded-lg transition-colors text-sm text-slate-300"
               >
                 🔄 Reset Counters
               </button>
             </div>
 
-            <div className="mt-4 p-3 bg-blue-900 bg-opacity-30 border border-blue-700 rounded">
-              <p className="text-xs text-blue-300">
+            <div className="mt-4 p-3 bg-sky-500/10 border border-sky-500/30 rounded">
+              <p className="text-xs text-sky-300">
                 💡 <strong>How it works:</strong> AI detects people with green bounding boxes and yellow center dots. 
                 Each person gets a stable tracking ID (#1, #2, #3) using IoU-based matching with motion prediction. 
                 <strong> Current People</strong> = people visible now. 
@@ -787,16 +787,16 @@ export default function AIDetection() {
         {/* Statistics */}
         {videoSource !== 'none' && videoSource !== 'youtube' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-sm mb-1">Processing Speed</div>
-              <div className="text-3xl font-bold text-purple-400">{fps}</div>
-              <div className="text-xs text-gray-500 mt-1">FPS</div>
+            <div className="p-4 bg-[#111b36] rounded-lg border border-[#1c2a4f]">
+              <div className="text-slate-500 text-sm mb-1">Processing Speed</div>
+              <div className="text-3xl font-bold text-violet-400">{fps}</div>
+              <div className="text-xs text-slate-500 mt-1">FPS</div>
             </div>
 
-            <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-sm mb-1">AI Model</div>
-              <div className="text-xl font-bold text-cyan-400">MediaPipe</div>
-              <div className="text-xs text-gray-500 mt-1">EfficientDet Lite0</div>
+            <div className="p-4 bg-[#111b36] rounded-lg border border-[#1c2a4f]">
+              <div className="text-slate-500 text-sm mb-1">AI Model</div>
+              <div className="text-xl font-bold text-amber-400">MediaPipe</div>
+              <div className="text-xs text-slate-500 mt-1">EfficientDet Lite0</div>
             </div>
           </div>
         )}
@@ -806,7 +806,7 @@ export default function AIDetection() {
           <div className="mt-6">
             <button
               onClick={stopVideo}
-              className="w-full p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              className="w-full p-3 bg-[#162042] hover:bg-[#1c2a4f] border border-[#1c2a4f] rounded-lg transition-colors text-slate-300"
             >
               Stop Video & Release Resources
             </button>
@@ -814,9 +814,9 @@ export default function AIDetection() {
         )}
 
         {/* Info Panel */}
-        <div className="mt-6 p-4 bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2 text-blue-400">About This AI Detection</h3>
-          <ul className="text-sm text-gray-300 space-y-1">
+        <div className="mt-6 p-4 bg-[#111b36] border border-[#1c2a4f] rounded-lg">
+          <h3 className="text-lg font-semibold mb-2 text-amber-400">About This AI Detection</h3>
+          <ul className="text-sm text-slate-300 space-y-1">
             <li>• <strong>MediaPipe AI</strong> - Google's EfficientDet Lite0 object detection model</li>
             <li>• <strong>IoU-based tracking</strong> - Uses Intersection over Union with motion prediction for stable IDs</li>
             <li>• <strong>Dot-based visualization</strong> - Yellow dot at center of each person for easy identification</li>
@@ -827,15 +827,15 @@ export default function AIDetection() {
             <li>• <strong>Works with uploaded videos, webcam, and demo images</strong></li>
             <li>• <strong>YouTube videos</strong> - Manual counting only (iframe restriction)</li>
           </ul>
-          <div className="mt-3 p-3 bg-yellow-900 bg-opacity-30 border border-yellow-700 rounded">
-            <p className="text-xs text-yellow-300">
+          <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded">
+            <p className="text-xs text-amber-400">
               <strong>⚠️ Tracking Limitations:</strong> The system uses bounding-box tracking without facial recognition. 
               IDs may change if a person is occluded, leaves and re-enters the frame, or in very crowded scenes. 
               "Total Tracks" counts tracking IDs, not guaranteed unique people.
             </p>
           </div>
-          <div className="mt-3 p-3 bg-green-900 bg-opacity-30 border border-green-700 rounded">
-            <p className="text-xs text-green-300">
+          <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded">
+            <p className="text-xs text-emerald-400">
               <strong>💡 Quick Start:</strong> Upload any crowd video → AI detects people with green boxes and yellow dots. 
               Each person gets a tracking ID that persists as they move. Current count updates in real-time!
             </p>
