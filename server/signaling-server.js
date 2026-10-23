@@ -9,6 +9,9 @@
  */
 
 const WebSocket = require('ws');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 // Configuration
@@ -21,8 +24,40 @@ const rooms = new Map(); // roomId -> { laptopWs, phoneWs }
 
 console.log('🚀 Starting signaling server...');
 
-// Create WebSocket server
-const wss = new WebSocket.Server({ port: PORT });
+// Check for HTTPS certificates
+const certPath = path.resolve(__dirname, '../certs/cert.pem');
+const keyPath = path.resolve(__dirname, '../certs/key.pem');
+const hasCerts = fs.existsSync(certPath) && fs.existsSync(keyPath);
+
+let wss;
+
+if (hasCerts) {
+  // Create HTTPS server with WSS support
+  const httpsServer = https.createServer({
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath)
+  });
+  
+  wss = new WebSocket.Server({ server: httpsServer });
+  
+  httpsServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Signaling server listening on wss://localhost:${PORT} (HTTPS)`);
+    console.log('📱 Ready for phone camera connections');
+    console.log('🔒 Secure WebSocket (WSS) enabled');
+  });
+} else {
+  // Fallback to plain WebSocket (for development without HTTPS)
+  console.warn('⚠️  No HTTPS certificates found. Using plain WebSocket (ws://)');
+  console.warn('⚠️  Phone camera may not work without HTTPS. Run: npm run generate-cert');
+  
+  wss = new WebSocket.Server({ 
+    port: PORT,
+    host: '0.0.0.0'
+  });
+  
+  console.log(`✅ Signaling server listening on ws://localhost:${PORT} (HTTP)`);
+  console.log('📱 Ready for phone camera connections');
+}
 
 wss.on('listening', () => {
   console.log(`✅ Signaling server listening on ws://localhost:${PORT}`);

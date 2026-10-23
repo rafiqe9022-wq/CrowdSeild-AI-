@@ -158,45 +158,86 @@ export default function AIDetection() {
     setError(null);
     setPhoneConnectionStatus('waiting');
     
-    // Connect to signaling server
-    const signalingUrl = `wss://${window.location.hostname}:3001`;
-    console.log('📱 Connecting to signaling server:', signalingUrl);
+    // Try WSS first (secure WebSocket), then fallback to WS
+    const hostname = window.location.hostname;
+    const wssUrl = `wss://${hostname}:3001`;
+    const wsUrl = `ws://${hostname}:3001`;
     
-    try {
-      const ws = new WebSocket(signalingUrl);
-      wsRef.current = ws;
-      
-      ws.onopen = () => {
-        console.log('✅ Connected to signaling server');
-        // Request to create a room
-        ws.send(JSON.stringify({
-          type: 'create-room'
-        }));
-      };
-      
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        handlePhoneSignalingMessage(message);
-      };
-      
-      ws.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
-        setError('Failed to connect to signaling server. Make sure it\'s running on port 3001.');
-        setPhoneConnectionStatus('disconnected');
-      };
-      
-      ws.onclose = () => {
-        console.log('🔌 Disconnected from signaling server');
-        if (phoneConnectionStatus !== 'connected') {
+    console.log('📱 Attempting to connect to signaling server...');
+    console.log('   Primary:', wssUrl);
+    console.log('   Fallback:', wsUrl);
+    
+    const connectWithFallback = (url: string, isPrimary: boolean) => {
+      try {
+        const ws = new WebSocket(url);
+        wsRef.current = ws;
+        
+        const connectionTimeout = setTimeout(() => {
+          if (ws.readyState !== WebSocket.OPEN) {
+            console.warn(`⏱️ Connection timeout for ${url}`);
+            ws.close();
+            
+            if (isPrimary) {
+              console.log('🔄 Trying fallback connection (ws://)...');
+              connectWithFallback(wsUrl, false);
+            } else {
+              setError('Failed to connect to signaling server. Please ensure:\n1. Run "npm run signaling" in a separate terminal\n2. Port 3001 is not blocked by firewall\n3. Both servers are running on the same network');
+              setPhoneConnectionStatus('disconnected');
+            }
+          }
+        }, 5000);
+        
+        ws.onopen = () => {
+          clearTimeout(connectionTimeout);
+          console.log(`✅ Connected to signaling server via ${isPrimary ? 'WSS' : 'WS'}`);
+          // Request to create a room
+          ws.send(JSON.stringify({
+            type: 'create-room'
+          }));
+        };
+        
+        ws.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          handlePhoneSignalingMessage(message);
+        };
+        
+        ws.onerror = (error) => {
+          clearTimeout(connectionTimeout);
+          console.error(`❌ WebSocket error on ${url}:`, error);
+          
+          if (isPrimary) {
+            console.log('🔄 WSS failed, trying WS fallback...');
+            ws.close();
+            connectWithFallback(wsUrl, false);
+          } else {
+            setError('Failed to connect to signaling server. Please ensure:\n1. Run "npm run signaling" in a separate terminal\n2. Port 3001 is not blocked by firewall\n3. Both servers are running on the same network');
+            setPhoneConnectionStatus('disconnected');
+          }
+        };
+        
+        ws.onclose = () => {
+          clearTimeout(connectionTimeout);
+          console.log('🔌 Disconnected from signaling server');
+          if (phoneConnectionStatus !== 'connected') {
+            setPhoneConnectionStatus('disconnected');
+          }
+        };
+        
+      } catch (error) {
+        console.error(`❌ Failed to connect to ${url}:`, error);
+        
+        if (isPrimary) {
+          console.log('🔄 WSS connection failed, trying WS fallback...');
+          connectWithFallback(wsUrl, false);
+        } else {
+          setError('Failed to initialize phone camera connection. Please check your network and try again.');
           setPhoneConnectionStatus('disconnected');
         }
-      };
-      
-    } catch (error) {
-      console.error('❌ Failed to connect:', error);
-      setError('Failed to initialize phone camera connection.');
-      setPhoneConnectionStatus('disconnected');
-    }
+      }
+    };
+    
+    // Start with WSS (secure WebSocket)
+    connectWithFallback(wssUrl, true);
   };
 
   // Handle phone signaling messages

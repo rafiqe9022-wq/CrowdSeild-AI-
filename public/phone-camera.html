@@ -252,7 +252,8 @@
 
   <script>
     // Configuration
-    const SIGNALING_SERVER_URL = `wss://${window.location.hostname}:3001`;
+    // Note: Signaling server URL is now dynamically determined in connectToSignalingServer()
+    // with fallback from WSS to WS for better compatibility
     
     // State
     let ws = null;
@@ -293,34 +294,79 @@
 
     // Connect to signaling server
     function connectToSignalingServer() {
-      try {
-        ws = new WebSocket(SIGNALING_SERVER_URL);
+      const hostname = window.location.hostname;
+      const wssUrl = `wss://${hostname}:3001`;
+      const wsUrl = `ws://${hostname}:3001`;
+      
+      console.log('📱 Attempting to connect to signaling server...');
+      console.log('   Primary:', wssUrl);
+      console.log('   Fallback:', wsUrl);
+      
+      const connectWithFallback = (url, isPrimary) => {
+        try {
+          ws = new WebSocket(url);
+          
+          const connectionTimeout = setTimeout(() => {
+            if (ws.readyState !== WebSocket.OPEN) {
+              console.warn(`⏱️ Connection timeout for ${url}`);
+              ws.close();
+              
+              if (isPrimary) {
+                console.log('🔄 Trying fallback connection (ws://)...');
+                connectWithFallback(wsUrl, false);
+              } else {
+                updateStatus('error', 'Failed to connect to signaling server. Please ensure the server is running on port 3001.');
+              }
+            }
+          }, 5000);
+          
+          ws.onopen = () => {
+            clearTimeout(connectionTimeout);
+            console.log(`✅ Connected to signaling server via ${isPrimary ? 'WSS' : 'WS'}`);
+            updateStatus('success', 'Connected to signaling server. Enter pairing token.');
+            connectBtn.disabled = false;
+          };
 
-        ws.onopen = () => {
-          console.log('✅ Connected to signaling server');
-          updateStatus('success', 'Connected to signaling server. Enter pairing token.');
-          connectBtn.disabled = false;
-        };
+          ws.onmessage = (event) => {
+            clearTimeout(connectionTimeout);
+            const message = JSON.parse(event.data);
+            handleSignalingMessage(message);
+          };
 
-        ws.onmessage = (event) => {
-          const message = JSON.parse(event.data);
-          handleSignalingMessage(message);
-        };
+          ws.onerror = (error) => {
+            clearTimeout(connectionTimeout);
+            console.error(`❌ WebSocket error on ${url}:`, error);
+            
+            if (isPrimary) {
+              console.log('🔄 WSS failed, trying WS fallback...');
+              ws.close();
+              connectWithFallback(wsUrl, false);
+            } else {
+              updateStatus('error', 'Failed to connect to signaling server. Please ensure the server is running on port 3001.');
+            }
+          };
 
-        ws.onerror = (error) => {
-          console.error('❌ WebSocket error:', error);
-          updateStatus('error', 'Failed to connect to signaling server');
-        };
-
-        ws.onclose = () => {
-          console.log('🔌 Disconnected from signaling server');
-          updateStatus('warning', 'Disconnected from signaling server');
-          connectBtn.disabled = true;
-        };
-      } catch (error) {
-        console.error('❌ Connection error:', error);
-        updateStatus('error', 'Failed to connect to signaling server');
-      }
+          ws.onclose = () => {
+            clearTimeout(connectionTimeout);
+            console.log('🔌 Disconnected from signaling server');
+            updateStatus('warning', 'Disconnected from signaling server');
+            connectBtn.disabled = true;
+          };
+        } catch (error) {
+          clearTimeout(connectionTimeout);
+          console.error(`❌ Failed to connect to ${url}:`, error);
+          
+          if (isPrimary) {
+            console.log('🔄 WSS connection failed, trying WS fallback...');
+            connectWithFallback(wsUrl, false);
+          } else {
+            updateStatus('error', 'Failed to connect to signaling server. Please check your network and try again.');
+          }
+        }
+      };
+      
+      // Start with WSS (secure WebSocket)
+      connectWithFallback(wssUrl, true);
     }
 
     // Handle signaling messages
