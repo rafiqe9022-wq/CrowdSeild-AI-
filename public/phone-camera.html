@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>CrowdSafe AI - Phone Camera</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #070b1a 0%, #0d1429 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background: #111b36;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      border: 1px solid #1c2a4f;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    .status {
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .status.info {
+      background: rgba(14, 165, 233, 0.1);
+      border: 1px solid rgba(14, 165, 233, 0.3);
+      color: #38bdf8;
+    }
+
+    .status.success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .status.error {
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: #fb7185;
+    }
+
+    .status.warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #cbd5e1;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      background: #0d1429;
+      border: 1px solid #1c2a4f;
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    }
+
+    input::placeholder {
+      color: #64748b;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .video-preview {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 20px;
+      background: #0d1429;
+      display: none;
+    }
+
+    .video-preview video {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .info-box {
+      background: rgba(14, 165, 233, 0.1);
+      border: 1px solid rgba(14, 165, 233, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #38bdf8;
+      line-height: 1.6;
+    }
+
+    .info-box strong {
+      color: #7dd3fc;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 CrowdSafe AI</h1>
+    <p class="subtitle">Phone Camera Streaming</p>
+
+    <!-- Connection Status -->
+    <div id="status" class="status info">
+      <div class="spinner"></div>
+      <span>Initializing...</span>
+    </div>
+
+    <!-- Pairing Token Input -->
+    <div id="tokenSection">
+      <div class="input-group">
+        <label for="tokenInput">Pairing Token</label>
+        <input 
+          type="text" 
+          id="tokenInput" 
+          placeholder="Enter token from laptop dashboard"
+          autocomplete="off"
+        >
+      </div>
+      <button id="connectBtn" disabled>
+        <span>Connect to Dashboard</span>
+      </button>
+    </div>
+
+    <!-- Video Preview -->
+    <div id="videoPreview" class="video-preview">
+      <video id="localVideo" autoplay playsinline muted></video>
+    </div>
+
+    <!-- Info Box -->
+    <div class="info-box">
+      <strong>ℹ️ Instructions:</strong><br>
+      1. Open CrowdSafe AI dashboard on your laptop<br>
+      2. Click "Phone Camera" button<br>
+      3. Copy the pairing token shown on laptop<br>
+      4. Paste the token above and click "Connect"<br>
+      5. Allow camera access when prompted<br>
+      6. Your camera stream will appear on the laptop dashboard
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const SIGNALING_SERVER_URL = `wss://${window.location.hostname}:3001`;
+    
+    // State
+    let ws = null;
+    let peerConnection = null;
+    let localStream = null;
+    let clientId = null;
+    let roomId = null;
+
+    // DOM Elements
+    const statusEl = document.getElementById('status');
+    const tokenSection = document.getElementById('tokenSection');
+    const tokenInput = document.getElementById('tokenInput');
+    const connectBtn = document.getElementById('connectBtn');
+    const videoPreview = document.getElementById('videoPreview');
+    const localVideo = document.getElementById('localVideo');
+
+    // WebRTC Configuration
+    const rtcConfig = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+
+    // Initialize
+    function init() {
+      updateStatus('info', 'Connecting to signaling server...', true);
+      connectToSignalingServer();
+    }
+
+    // Update status display
+    function updateStatus(type, message, showSpinner = false) {
+      statusEl.className = `status ${type}`;
+      statusEl.innerHTML = showSpinner 
+        ? `<div class="spinner"></div><span>${message}</span>`
+        : `<span>${message}</span>`;
+    }
+
+    // Connect to signaling server
+    function connectToSignalingServer() {
+      try {
+        ws = new WebSocket(SIGNALING_SERVER_URL);
+
+        ws.onopen = () => {
+          console.log('✅ Connected to signaling server');
+          updateStatus('success', 'Connected to signaling server. Enter pairing token.');
+          connectBtn.disabled = false;
+        };
+
+        ws.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          handleSignalingMessage(message);
+        };
+
+        ws.onerror = (error) => {
+          console.error('❌ WebSocket error:', error);
+          updateStatus('error', 'Failed to connect to signaling server');
+        };
+
+        ws.onclose = () => {
+          console.log('🔌 Disconnected from signaling server');
+          updateStatus('warning', 'Disconnected from signaling server');
+          connectBtn.disabled = true;
+        };
+      } catch (error) {
+        console.error('❌ Connection error:', error);
+        updateStatus('error', 'Failed to connect to signaling server');
+      }
+    }
+
+    // Handle signaling messages
+    async function handleSignalingMessage(message) {
+      console.log('📨 Received:', message.type);
+
+      switch (message.type) {
+        case 'welcome':
+          clientId = message.clientId;
+          console.log('🆔 Client ID:', clientId);
+          break;
+
+        case 'room-joined':
+          roomId = message.roomId;
+          console.log('🏠 Joined room:', roomId);
+          updateStatus('success', 'Connected! Starting camera...');
+          await startCamera();
+          break;
+
+        case 'answer':
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(message.data));
+          console.log('✅ Set remote answer');
+          break;
+
+        case 'ice-candidate':
+          try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(message.data));
+            console.log('✅ Added ICE candidate');
+          } catch (error) {
+            console.error('❌ Error adding ICE candidate:', error);
+          }
+          break;
+
+        case 'peer-disconnected':
+          updateStatus('warning', 'Laptop disconnected');
+          cleanup();
+          break;
+
+        case 'error':
+          updateStatus('error', message.message);
+          break;
+      }
+    }
+
+    // Handle connect button click
+    connectBtn.addEventListener('click', async () => {
+      const token = tokenInput.value.trim();
+      
+      if (!token) {
+        updateStatus('error', 'Please enter a pairing token');
+        return;
+      }
+
+      connectBtn.disabled = true;
+      updateStatus('info', 'Joining room...', true);
+
+      // Send join-room message
+      ws.send(JSON.stringify({
+        type: 'join-room',
+        token: token
+      }));
+    });
+
+    // Start camera
+    async function startCamera() {
+      try {
+        updateStatus('info', 'Requesting camera access...', true);
+
+        // Request camera access
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment', // Use back camera if available
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+
+        console.log('✅ Camera access granted');
+        
+        // Show video preview
+        localVideo.srcObject = localStream;
+        videoPreview.style.display = 'block';
+
+        updateStatus('success', 'Camera active! Streaming to laptop...');
+
+        // Create peer connection
+        await createPeerConnection();
+
+      } catch (error) {
+        console.error('❌ Camera error:', error);
+        
+        if (error.name === 'NotAllowedError') {
+          updateStatus('error', 'Camera access denied. Please allow camera permission.');
+        } else if (error.name === 'NotFoundError') {
+          updateStatus('error', 'No camera found on this device.');
+        } else {
+          updateStatus('error', `Camera error: ${error.message}`);
+        }
+        
+        connectBtn.disabled = false;
+      }
+    }
+
+    // Create peer connection
+    async function createPeerConnection() {
+      try {
+        peerConnection = new RTCPeerConnection(rtcConfig);
+
+        // Add local stream tracks
+        localStream.getTracks().forEach(track => {
+          peerConnection.addTrack(track, localStream);
+          console.log('✅ Added track:', track.kind);
+        });
+
+        // Handle ICE candidates
+        peerConnection.onicecandidate = (event) => {
+          if (event.candidate) {
+            console.log('📤 Sending ICE candidate');
+            ws.send(JSON.stringify({
+              type: 'ice-candidate',
+              roomId: roomId,
+              data: event.candidate
+            }));
+          }
+        };
+
+        // Handle connection state changes
+        peerConnection.onconnectionstatechange = () => {
+          console.log('🔄 Connection state:', peerConnection.connectionState);
+          
+          if (peerConnection.connectionState === 'connected') {
+            updateStatus('success', 'Streaming to laptop!');
+          } else if (peerConnection.connectionState === 'disconnected' || 
+                     peerConnection.connectionState === 'failed') {
+            updateStatus('warning', 'Connection lost');
+          }
+        };
+
+        // Handle ICE connection state
+        peerConnection.oniceconnectionstatechange = () => {
+          console.log('🔄 ICE state:', peerConnection.iceConnectionState);
+        };
+
+        // Create offer
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        console.log('📤 Sending offer');
+        ws.send(JSON.stringify({
+          type: 'offer',
+          roomId: roomId,
+          data: offer
+        }));
+
+        updateStatus('info', 'Connecting to laptop...', true);
+
+      } catch (error) {
+        console.error('❌ Peer connection error:', error);
+        updateStatus('error', `Connection error: ${error.message}`);
+      }
+    }
+
+    // Cleanup resources
+    function cleanup() {
+      console.log('🧹 Cleaning up resources...');
+
+      // Stop camera
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+
+      // Close peer connection
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+
+      // Close WebSocket
+      if (ws) {
+        ws.send(JSON.stringify({
+          type: 'disconnect',
+          roomId: roomId
+        }));
+        ws.close();
+        ws = null;
+      }
+
+      // Hide video preview
+      videoPreview.style.display = 'none';
+      localVideo.srcObject = null;
+
+      // Reset UI
+      tokenSection.classList.remove('hidden');
+      connectBtn.disabled = false;
+      tokenInput.value = '';
+      roomId = null;
+    }
+
+    // Handle page unload
+    window.addEventListener('beforeunload', () => {
+      cleanup();
+    });
+
+    // Handle visibility change (mobile browsers may pause camera)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && localStream) {
+        console.log('⏸️ Page hidden, pausing camera');
+        localStream.getTracks().forEach(track => track.enabled = false);
+      } else if (!document.hidden && localStream) {
+        console.log('▶️ Page visible, resuming camera');
+        localStream.getTracks().forEach(track => track.enabled = true);
+      }
+    });
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

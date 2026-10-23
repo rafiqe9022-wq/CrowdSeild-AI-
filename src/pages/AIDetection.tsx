@@ -12,15 +12,25 @@ export default function AIDetection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isDetectingRef = useRef(false);
   const objectUrlRef = useRef<string | null>(null);
+  
+  // Phone camera WebRTC refs
+  const wsRef = useRef<WebSocket | null>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const phoneStreamRef = useRef<MediaStream | null>(null);
 
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [isModelReady, setIsModelReady] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
-  const [videoSource, setVideoSource] = useState<'none' | 'webcam' | 'file' | 'demo' | 'youtube'>('none');
+  const [videoSource, setVideoSource] = useState<'none' | 'webcam' | 'file' | 'demo' | 'youtube' | 'phone'>('none');
   const [fps, setFps] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string>('');
   const [demoImage, setDemoImage] = useState<HTMLImageElement | null>(null);
+  
+  // Phone camera state
+  const [pairingToken, setPairingToken] = useState<string | null>(null);
+  const [phoneConnected, setPhoneConnected] = useState(false);
+  const [phoneConnectionStatus, setPhoneConnectionStatus] = useState<'disconnected' | 'waiting' | 'connecting' | 'connected'>('disconnected');
   
   // Entry counting state
   const [entries, setEntries] = useState(0);
@@ -40,6 +50,8 @@ export default function AIDetection() {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      // Clean up phone camera on unmount
+      cleanupPhoneCamera();
     };
   }, []);
 
@@ -79,6 +91,12 @@ export default function AIDetection() {
   const loadDemoImage = () => {
     if (!isModelReady) return;
     setError(null);
+    
+    // Clean up phone camera if active
+    if (videoSource === 'phone') {
+      cleanupPhoneCamera();
+    }
+    
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -96,6 +114,12 @@ export default function AIDetection() {
   // Load YouTube video
   const loadYouTubeVideo = () => {
     setError(null);
+    
+    // Clean up phone camera if active
+    if (videoSource === 'phone') {
+      cleanupPhoneCamera();
+    }
+    
     setVideoSource('youtube');
     setVideoFileName('YouTube Demo Video');
     setYoutubeEntries(0);
@@ -106,6 +130,12 @@ export default function AIDetection() {
   const startWebcam = async () => {
     if (!isModelReady) return;
     setError(null);
+    
+    // Clean up phone camera if active
+    if (videoSource === 'phone') {
+      cleanupPhoneCamera();
+    }
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480 },
@@ -119,6 +149,221 @@ export default function AIDetection() {
     } catch (err) {
       setError('Failed to access webcam. Please check permissions.');
       console.error(err);
+    }
+  };
+
+  // Start phone camera (WebRTC receiver)
+  const startPhoneCamera = () => {
+    if (!isModelReady) return;
+    setError(null);
+    setPhoneConnectionStatus('waiting');
+    
+    // Connect to signaling server
+    const signalingUrl = `wss://${window.location.hostname}:3001`;
+    console.log('📱 Connecting to signaling server:', signalingUrl);
+    
+    try {
+      const ws = new WebSocket(signalingUrl);
+      wsRef.current = ws;
+      
+      ws.onopen = () => {
+        console.log('✅ Connected to signaling server');
+        // Request to create a room
+        ws.send(JSON.stringify({
+          type: 'create-room'
+        }));
+      };
+      
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        handlePhoneSignalingMessage(message);
+      };
+      
+      ws.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        setError('Failed to connect to signaling server. Make sure it\'s running on port 3001.');
+        setPhoneConnectionStatus('disconnected');
+      };
+      
+      ws.onclose = () => {
+        console.log('🔌 Disconnected from signaling server');
+        if (phoneConnectionStatus !== 'connected') {
+          setPhoneConnectionStatus('disconnected');
+        }
+      };
+      
+    } catch (error) {
+      console.error('❌ Failed to connect:', error);
+      setError('Failed to initialize phone camera connection.');
+      setPhoneConnectionStatus('disconnected');
+    }
+  };
+
+  // Handle phone signaling messages
+  const handlePhoneSignalingMessage = async (message: any) => {
+    console.log('📨 Phone signaling message:', message.type);
+    
+    switch (message.type) {
+      case 'room-created':
+        // Display pairing token to user
+        setPairingToken(message.token);
+        console.log('🎫 Pairing token:', message.token);
+        break;
+      
+      case 'phone-connected':
+        console.log('📱 Phone connected!');
+        setPhoneConnectionStatus('connecting');
+        // Create peer connection
+        await createPhonePeerConnection();
+        break;
+      
+      case 'offer':
+        // Phone sent an offer, we need to answer
+        if (peerConnectionRef.current) {
+          await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(message.data));
+          const answer = await peerConnectionRef.current.createAnswer();
+          await peerConnectionRef.current.setLocalDescription(answer);
+          
+          // Send answer back to phone
+          wsRef.current?.send(JSON.stringify({
+            type: 'answer',
+            roomId: message.roomId || pairingToken,
+            data: answer
+          }));
+          console.log('✅ Sent answer to phone');
+        }
+        break;
+      
+      case 'ice-candidate':
+        // Phone sent ICE candidate
+        if (peerConnectionRef.current) {
+          try {
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(message.data));
+            console.log('✅ Added ICE candidate from phone');
+          } catch (error) {
+            console.error('❌ Error adding ICE candidate:', error);
+          }
+        }
+        break;
+      
+      case 'token-expired':
+        setError('Pairing token expired. Please generate a new one.');
+        setPhoneConnectionStatus('disconnected');
+        setPairingToken(null);
+        break;
+      
+      case 'peer-disconnected':
+        console.log('📱 Phone disconnected');
+        setPhoneConnectionStatus('disconnected');
+        setPairingToken(null);
+        cleanupPhoneCamera();
+        break;
+      
+      case 'error':
+        setError(`Phone connection error: ${message.message}`);
+        setPhoneConnectionStatus('disconnected');
+        break;
+    }
+  };
+
+  // Create peer connection for phone camera
+  const createPhonePeerConnection = async () => {
+    const rtcConfig = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+    
+    const peerConnection = new RTCPeerConnection(rtcConfig);
+    peerConnectionRef.current = peerConnection;
+    
+    // Handle incoming tracks from phone
+    peerConnection.ontrack = (event) => {
+      console.log('📹 Received track from phone:', event.track.kind);
+      
+      if (event.track.kind === 'video') {
+        // Create a MediaStream and attach to video element
+        const stream = new MediaStream([event.track]);
+        phoneStreamRef.current = stream;
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setVideoSource('phone');
+          setVideoFileName('Phone Camera');
+          setPhoneConnectionStatus('connected');
+          resetCounters();
+          
+          // Start detection automatically
+          setTimeout(() => {
+            if (!isDetecting) {
+              startDetection();
+            }
+          }, 500);
+        }
+      }
+    };
+    
+    // Handle ICE candidates
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        console.log('📤 Sending ICE candidate to phone');
+        wsRef.current?.send(JSON.stringify({
+          type: 'ice-candidate',
+          data: event.candidate
+        }));
+      }
+    };
+    
+    // Handle connection state changes
+    peerConnection.onconnectionstatechange = () => {
+      console.log('🔄 Connection state:', peerConnection.connectionState);
+      
+      if (peerConnection.connectionState === 'connected') {
+        setPhoneConnectionStatus('connected');
+      } else if (peerConnection.connectionState === 'disconnected' || 
+                 peerConnection.connectionState === 'failed') {
+        setPhoneConnectionStatus('disconnected');
+        cleanupPhoneCamera();
+      }
+    };
+    
+    // Handle ICE connection state
+    peerConnection.oniceconnectionstatechange = () => {
+      console.log('🔄 ICE state:', peerConnection.iceConnectionState);
+    };
+  };
+
+  // Cleanup phone camera resources
+  const cleanupPhoneCamera = () => {
+    console.log('🧹 Cleaning up phone camera resources...');
+    
+    // Close peer connection
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    
+    // Stop phone stream
+    if (phoneStreamRef.current) {
+      phoneStreamRef.current.getTracks().forEach(track => track.stop());
+      phoneStreamRef.current = null;
+    }
+    
+    // Close WebSocket
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
+    // Reset state
+    setPairingToken(null);
+    setPhoneConnected(false);
+    setPhoneConnectionStatus('disconnected');
+    
+    // Clear video element if it was showing phone
+    if (videoSource === 'phone' && videoRef.current) {
+      videoRef.current.srcObject = null;
     }
   };
 
@@ -139,6 +384,11 @@ export default function AIDetection() {
     }
 
     setError(null);
+    
+    // Clean up phone camera if active
+    if (videoSource === 'phone') {
+      cleanupPhoneCamera();
+    }
     
     // Clean up previous object URL if exists
     if (objectUrlRef.current) {
@@ -448,6 +698,12 @@ export default function AIDetection() {
   // Stop video and cleanup
   const stopVideo = () => {
     stopDetection();
+    
+    // Clean up phone camera if active
+    if (videoSource === 'phone') {
+      cleanupPhoneCamera();
+    }
+    
     if (videoRef.current) {
       if (videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
@@ -516,7 +772,7 @@ export default function AIDetection() {
         </div>
 
         {/* Controls */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-6 gap-4">
           <button
             onClick={loadDemoImage}
             disabled={!isModelReady || isDetecting}
@@ -544,6 +800,17 @@ export default function AIDetection() {
           >
             <Camera size={20} />
             <span>Use Webcam</span>
+          </button>
+
+          <button
+            onClick={startPhoneCamera}
+            disabled={!isModelReady || isDetecting || phoneConnectionStatus === 'connecting' || phoneConnectionStatus === 'connected'}
+            className="p-4 bg-emerald-500/15 hover:bg-emerald-500/25 disabled:bg-[#111b36] disabled:text-slate-600 disabled:cursor-not-allowed rounded-lg transition-all flex items-center justify-center gap-2 border border-emerald-500/30 text-emerald-400"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span>Phone Camera</span>
           </button>
 
           <button
@@ -575,6 +842,86 @@ export default function AIDetection() {
             <span>{isDetecting ? 'Stop Detection' : 'Start Detection'}</span>
           </button>
         </div>
+
+        {/* Phone Camera Pairing UI */}
+        {(phoneConnectionStatus === 'waiting' || phoneConnectionStatus === 'connecting' || phoneConnectionStatus === 'connected') && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-lg border border-emerald-500/30">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-emerald-400">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              Phone Camera Connection
+            </h3>
+            
+            {phoneConnectionStatus === 'waiting' && pairingToken && (
+              <>
+                <div className="mb-4 p-4 bg-[#0d1429] rounded-lg border border-emerald-500/20">
+                  <p className="text-sm text-slate-400 mb-2">Pairing Token (valid for 5 minutes):</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 p-3 bg-[#070b1a] rounded border border-[#1c2a4f] text-emerald-400 font-mono text-sm break-all">
+                      {pairingToken}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(pairingToken);
+                        setError('Token copied to clipboard!');
+                        setTimeout(() => setError(null), 2000);
+                      }}
+                      className="px-4 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded text-emerald-400 text-sm font-medium transition-all"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-sky-500/10 border border-sky-500/30 rounded">
+                  <p className="text-xs text-sky-300">
+                    <strong>📱 Instructions:</strong><br/>
+                    1. On your phone, open: <code className="bg-[#070b1a] px-2 py-1 rounded">https://{window.location.hostname}:3000/phone-camera.html</code><br/>
+                    2. Enter the pairing token above<br/>
+                    3. Allow camera access when prompted<br/>
+                    4. Your phone camera will appear on this dashboard
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    cleanupPhoneCamera();
+                    setVideoSource('none');
+                  }}
+                  className="mt-3 w-full px-4 py-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 rounded text-rose-400 text-sm font-medium transition-all"
+                >
+                  Cancel Connection
+                </button>
+              </>
+            )}
+            
+            {phoneConnectionStatus === 'connecting' && (
+              <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded">
+                <Loader className="animate-spin text-amber-400" size={20} />
+                <span className="text-amber-400">Phone connected, establishing video stream...</span>
+              </div>
+            )}
+            
+            {phoneConnectionStatus === 'connected' && (
+              <div className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/30 rounded">
+                <div className="flex items-center gap-3">
+                  <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50"></div>
+                  <span className="text-emerald-400 font-medium">Phone camera streaming</span>
+                </div>
+                <button
+                  onClick={() => {
+                    cleanupPhoneCamera();
+                    setVideoSource('none');
+                  }}
+                  className="px-4 py-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 rounded text-rose-400 text-sm font-medium transition-all"
+                >
+                  Disconnect
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Video Display */}
         <div className="mb-6 relative bg-[#0a0f1f] rounded-lg overflow-hidden border border-[#1c2a4f]">
@@ -620,6 +967,7 @@ export default function AIDetection() {
               {videoSource === 'webcam' ? '📹 LIVE WEBCAM' : 
                videoSource === 'demo' ? '🖼️ DEMO IMAGE' : 
                videoSource === 'youtube' ? '📺 YOUTUBE VIDEO' :
+               videoSource === 'phone' ? '📱 PHONE CAMERA' :
                `🎬 ${videoFileName}`}
             </div>
           )}
@@ -630,7 +978,7 @@ export default function AIDetection() {
               <div className="text-center">
                 <Camera size={64} className="mx-auto mb-4 opacity-30" />
                 <p className="text-lg text-slate-400">Select a video source to begin</p>
-                <p className="text-sm mt-2 text-slate-500">Upload a video, use webcam, load demo, or watch YouTube</p>
+                <p className="text-sm mt-2 text-slate-500">Upload a video, use webcam, connect phone camera, load demo, or watch YouTube</p>
                 <p className="text-xs mt-2 text-amber-400">💡 AI will detect people with green boxes and yellow center dots!</p>
               </div>
             </div>
