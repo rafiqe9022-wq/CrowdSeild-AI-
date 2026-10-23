@@ -351,6 +351,7 @@ export default function AIDetection() {
         console.log('📤 Sending ICE candidate to phone');
         wsRef.current?.send(JSON.stringify({
           type: 'ice-candidate',
+          roomId: pairingToken,
           data: event.candidate
         }));
       }

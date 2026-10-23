@@ -303,6 +303,7 @@ function handleSignaling(ws, clientId, message) {
   // Forward signaling message
   targetWs.send(JSON.stringify({
     type: type,
+    roomId: roomId,
     data: data,
     from: clientId
   }));

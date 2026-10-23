@@ -75,29 +75,15 @@ chmod +x scripts/generate-cert.sh
 ./scripts/generate-cert.sh
 ```
 
-This creates:
-- `certs/key.pem` - Private key
-- `certs/cert.pem` - Certificate
+The script will:
+- ✅ Auto-detect your laptop's IP address
+- ✅ Generate certificate with your IP included
+- ✅ Create `certs/key.pem` (private key)
+- ✅ Create `certs/cert.pem` (certificate)
 
-### Step 3: Update Certificate IP Address (Important!)
+**Note:** If auto-detection fails, the script will prompt you to enter your IP manually.
 
-The generated certificate includes common local IPs (192.168.1.1, 192.168.0.1). You need to update it with your laptop's actual IP address.
-
-**Find your laptop's IP:**
-
-Windows:
-```bash
-ipconfig
-```
-Look for "IPv4 Address" under your Wi-Fi adapter (e.g., 192.168.1.100)
-
-Mac/Linux:
-```bash
-ifconfig
-# or
-ip addr
-```
-Look for your Wi-Fi interface IP (e.g., 192.168.1.100)
+### Step 3: Trust Certificate on Phone (Required!)
 
 **Regenerate certificate with your IP:**
 ```bash

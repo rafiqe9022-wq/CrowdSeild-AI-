@@ -12,7 +12,7 @@ You no longer need to upload a video. The AI Detection page now includes a **bui
 ```bash
 npm run dev
 ```
-Open your browser to `http://localhost:5173`
+Open your browser to `http://localhost:3000`
 
 ### Step 2: Login
 Click any demo account:
@@ -37,7 +37,7 @@ Click any demo account:
 
 ## 🎨 What You'll See
 
-The demo uses an **AI-generated crowd scene** with multiple people. The real TensorFlow.js COCO-SSD model will:
+The demo uses an **AI-generated crowd scene** with multiple people. The real MediaPipe EfficientDet model will:
 
 1. **Detect people** in the image
 2. **Draw green boxes** around each person
@@ -65,7 +65,7 @@ The demo uses an **AI-generated crowd scene** with multiple people. The real Ten
 > *Point to the boxes and scores*
 
 **30 seconds - Show Results:**
-> "The system detected [X] people with an average confidence of [Y]%. The crowd density is classified as [LOW/MEDIUM/HIGH]. All processing happens locally in the browser using TensorFlow.js."
+> "The system detected [X] people with an average confidence of [Y]%. The crowd density is classified as [LOW/MEDIUM/HIGH]. All processing happens locally in the browser using MediaPipe AI."
 
 ---
 
@@ -96,7 +96,7 @@ If you want to use your own content:
 - Or use "Upload Video" instead
 
 ### "Failed to load AI model"
-- First-time load downloads ~5MB model
+- First-time load downloads MediaPipe model files
 - Check internet connection
 - Refresh the page
 - Try a different browser (Chrome recommended)
