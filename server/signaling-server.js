@@ -8,11 +8,16 @@
  * It only exchanges connection metadata for peer-to-peer WebRTC.
  */
 
-const WebSocket = require('ws');
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+import WebSocket from 'ws';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { v4 as uuidv4 } from 'uuid';
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const PORT = process.env.SIGNALING_PORT || 3001;
